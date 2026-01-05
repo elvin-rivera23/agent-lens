@@ -4,12 +4,10 @@ Tests for GPU metrics module
 
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from pathlib import Path
 
-import pytest
-
-# Add the metrics src directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../services/metrics/src"))
+# Add the metrics src directory to path for imports at test time
+_METRICS_SRC = Path(__file__).parent.parent / "services" / "metrics" / "src"
 
 
 class TestGPUMetricsSimulation:
@@ -17,11 +15,13 @@ class TestGPUMetricsSimulation:
 
     def test_simulation_mode_collects_metrics(self):
         """Test that simulation mode generates fake GPU metrics."""
-        # Set simulation mode before first import
+        # Add path and set simulation mode before import
+        if str(_METRICS_SRC) not in sys.path:
+            sys.path.insert(0, str(_METRICS_SRC))
         os.environ["GPU_SIMULATE"] = "true"
 
         # Import fresh (metrics are created on import)
-        from gpu import _init_nvml, _simulate_mode, collect_gpu_metrics, shutdown_nvml
+        from gpu import _init_nvml, collect_gpu_metrics, shutdown_nvml
 
         # Should initialize successfully in sim mode
         result = _init_nvml()
@@ -40,6 +40,8 @@ class TestGPUMetricsNoGPU:
 
     def test_collect_metrics_safe_when_no_gpu(self):
         """Test that collect_gpu_metrics is safe to call without GPU."""
+        if str(_METRICS_SRC) not in sys.path:
+            sys.path.insert(0, str(_METRICS_SRC))
         os.environ.pop("GPU_SIMULATE", None)
 
         from gpu import collect_gpu_metrics
@@ -53,6 +55,8 @@ class TestGPUMetricsWithMockedNVML:
 
     def test_nvml_initialization_called(self):
         """Test that NVML is properly initialized."""
+        if str(_METRICS_SRC) not in sys.path:
+            sys.path.insert(0, str(_METRICS_SRC))
         os.environ.pop("GPU_SIMULATE", None)
 
         # Import the module
@@ -73,6 +77,8 @@ class TestGPUMetricsWithMockedNVML:
 
     def test_shutdown_is_safe(self):
         """Test that shutdown_nvml is safe to call multiple times."""
+        if str(_METRICS_SRC) not in sys.path:
+            sys.path.insert(0, str(_METRICS_SRC))
         from gpu import shutdown_nvml
 
         # Should not raise
