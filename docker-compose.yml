@@ -102,7 +102,7 @@ services:
   gpu-exporter:
     build:
       context: ./services/metrics
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
     profiles: [ "gpu" ]
     ports:
       - "9835:9835"
