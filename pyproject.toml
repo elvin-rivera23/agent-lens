@@ -2,13 +2,18 @@
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+# Exclude service directories from package discovery
+# Each service has its own Dockerfile and dependencies
+exclude = ["services*", "config*", "dashboards*", "docs*", "scripts*", "tests*"]
+
 [project]
 name = "agentlens"
 version = "0.1.0"
 description = "Multi-agent GPU observability platform"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Elvin Rivera"}
 ]
@@ -30,6 +35,13 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.8.0",
     "pre-commit>=3.6.0",
+    # Inference service deps for testing
+    "pydantic-settings>=2.0.0",
+    # Orchestrator deps for testing
+    "langgraph>=0.2.0",
+    "langchain>=0.2.0",
+    "langchain-openai>=0.1.0",
+    "websockets>=12.0",
 ]
 
 cpu = [
@@ -38,6 +50,13 @@ cpu = [
 
 gpu = [
     "vllm>=0.3.0",
+]
+
+orchestrator = [
+    "langgraph>=0.2.0",
+    "langchain>=0.2.0",
+    "langchain-openai>=0.1.0",
+    "websockets>=12.0",
 ]
 
 [tool.black]
