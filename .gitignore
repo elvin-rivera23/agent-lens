@@ -62,3 +62,6 @@ htmlcov/
 # Build
 *.egg
 *.whl
+
+# Planning (private)
+MILESTONES.md
