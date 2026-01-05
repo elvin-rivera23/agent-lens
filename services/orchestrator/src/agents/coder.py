@@ -60,8 +60,7 @@ if __name__ == "__main__":
 
     def __init__(self):
         super().__init__()
-        # Ensure workspace exists
-        WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+        # Workspace is created lazily in invoke() to avoid permission issues during import
 
     async def invoke(self, state: OrchestratorState) -> OrchestratorState:
         """
@@ -85,6 +84,9 @@ if __name__ == "__main__":
         # Generate filename from task
         filename = self._generate_filename(state.task)
         file_path = WORKSPACE_DIR / filename
+
+        # Ensure workspace exists (lazy creation)
+        WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
 
         # Write code to file
         file_path.write_text(code, encoding="utf-8")
