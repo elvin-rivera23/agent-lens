@@ -2,12 +2,21 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install llama-cpp-python for CPU inference
+# Install build dependencies for llama-cpp-python
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 RUN pip install --no-cache-dir \
     llama-cpp-python \
     fastapi \
     uvicorn \
-    prometheus-client
+    prometheus-client \
+    pydantic \
+    httpx
 
 COPY src/ /app/
 

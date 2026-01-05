@@ -3,13 +3,12 @@ AgentLens Inference Service - CPU Mode
 OpenAI-compatible API using llama-cpp-python
 """
 
-import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi.responses import Response
 import time
+
+from fastapi import FastAPI
+from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from pydantic import BaseModel
 
 app = FastAPI(title="AgentLens Inference (CPU)", version="0.1.0")
 
@@ -27,12 +26,12 @@ class CompletionRequest(BaseModel):
     prompt: str
     max_tokens: int = 256
     temperature: float = 0.7
-    stop: Optional[List[str]] = None
+    stop: list[str] | None = None
 
 
 class CompletionResponse(BaseModel):
     id: str
-    choices: List[dict]
+    choices: list[dict]
     usage: dict
 
 
@@ -60,17 +59,17 @@ async def metrics():
 async def completions(request: CompletionRequest) -> CompletionResponse:
     """OpenAI-compatible completions endpoint."""
     REQUEST_COUNT.inc()
-    
+
     start_time = time.time()
-    
+
     # TODO: Actual inference with llama-cpp
     # Placeholder response
     response_text = f"[CPU Mode Placeholder] Echo: {request.prompt[:100]}..."
-    
+
     latency = time.time() - start_time
     REQUEST_LATENCY.observe(latency)
     TOKENS_GENERATED.inc(len(response_text.split()))
-    
+
     return CompletionResponse(
         id="cmpl-placeholder",
         choices=[{
