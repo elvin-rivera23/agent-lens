@@ -1,6 +1,6 @@
 """
 AgentLens Metrics Collector Service
-Collects system metrics and exposes them for Prometheus
+Collects system and GPU metrics and exposes them for Prometheus
 """
 
 import logging
@@ -9,13 +9,14 @@ import time
 import psutil
 from fastapi import FastAPI
 from fastapi.responses import Response
+from gpu import collect_gpu_metrics, shutdown_nvml
 from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AgentLens Metrics Collector", version="0.1.0")
+app = FastAPI(title="AgentLens Metrics Collector", version="0.2.0")
 
 # System metrics
 CPU_USAGE = Gauge("system_cpu_usage_percent", "CPU usage percentage")
@@ -56,6 +57,7 @@ async def health():
 async def metrics():
     """Prometheus metrics endpoint."""
     collect_system_metrics()
+    collect_gpu_metrics()
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
@@ -80,6 +82,12 @@ async def stats():
             "total_gb": round(disk.total / (1024**3), 2),
         },
     }
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup NVML on shutdown."""
+    shutdown_nvml()
 
 
 if __name__ == "__main__":
