@@ -1,0 +1,18 @@
+# Core web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+
+# LangGraph for multi-agent orchestration
+langgraph>=0.2.0
+langchain>=0.2.0
+langchain-openai>=0.1.0
+
+# HTTP client for inference calls
+httpx>=0.26.0
+
+# Metrics and monitoring
+prometheus-client>=0.19.0
+
+# WebSocket support
+websockets>=12.0
