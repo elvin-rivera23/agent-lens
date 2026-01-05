@@ -37,8 +37,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install mypy
-          pip install -e ".[dev]"
+          pip install mypy pydantic fastapi prometheus-client
           
       - name: Run mypy
         run: mypy services/ --ignore-missing-imports
@@ -55,16 +54,12 @@ jobs:
           python-version: "3.10"
           
       - name: Install dependencies
-        run: pip install -e ".[dev]"
-        
+        run: |
+          pip install pytest pytest-asyncio httpx
+          pip install fastapi uvicorn pydantic prometheus-client
+          
       - name: Run tests
-        run: pytest --cov=services --cov-report=xml
-        
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+        run: pytest tests/ -v
 
   docker-build:
     name: Docker Build
