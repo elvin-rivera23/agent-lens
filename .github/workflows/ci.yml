@@ -57,8 +57,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio httpx
-          pip install fastapi uvicorn pydantic pydantic-settings prometheus-client
+          pip install -e ".[dev]"
           
       - name: Run tests
         run: pytest tests/ -v
