@@ -25,30 +25,19 @@ AI agents are black boxes. When you run CrewAI, AutoGen, or LangGraph agents:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         VISUALIZATION DASHBOARD                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
-│  │  Architect  │ │   Coder     │ │  Reviewer   │ │  Executor   │       │
-│  │  Agent      │ │  Agent      │ │  Agent      │ │  Agent      │       │
-│  │ GPU: 45%    │ │ GPU: 78%    │ │ GPU: 12%    │ │ GPU: 0%     │       │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        AGENT ORCHESTRATOR (LangGraph)                    │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      INFERENCE ENGINE (vLLM + Llama-3-8B)               │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      METRICS COLLECTOR (Prometheus)                     │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Dashboard["VISUALIZATION DASHBOARD"]
+        A1["🏗️ Architect Agent<br/>GPU: 45%"]
+        A2["💻 Coder Agent<br/>GPU: 78%"]
+        A3["🔍 Reviewer Agent<br/>GPU: 12%"]
+        A4["▶️ Executor Agent<br/>GPU: 0%"]
+    end
+    
+    Dashboard --> Orchestrator["AGENT ORCHESTRATOR<br/>(LangGraph)"]
+    Orchestrator --> Inference["INFERENCE ENGINE<br/>(vLLM + Llama-3-8B)"]
+    Inference --> Metrics["METRICS COLLECTOR<br/>(Prometheus)"]
+    Metrics -.-> Dashboard
 ```
 
 ## Quick Start
