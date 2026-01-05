@@ -11,9 +11,23 @@ from unittest.mock import patch
 
 import pytest
 
-# Add orchestrator src to path for imports
-orchestrator_src = Path(__file__).parent.parent / "services" / "orchestrator" / "src"
-sys.path.insert(0, str(orchestrator_src))
+# Orchestrator path - added to sys.path for imports
+_orchestrator_src = Path(__file__).parent.parent / "services" / "orchestrator" / "src"
+
+
+@pytest.fixture(autouse=True, scope="module")
+def setup_orchestrator_path():
+    """Add orchestrator src to path for module imports, clean up after."""
+    sys.path.insert(0, str(_orchestrator_src))
+    yield
+    if str(_orchestrator_src) in sys.path:
+        sys.path.remove(str(_orchestrator_src))
+
+
+# For the tests that import at function level, we need path available now
+# This is a workaround for pytest's collection phase
+if str(_orchestrator_src) not in sys.path:
+    sys.path.insert(0, str(_orchestrator_src))
 
 
 class TestOrchestratorState:

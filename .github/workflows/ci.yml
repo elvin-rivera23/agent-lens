@@ -60,7 +60,12 @@ jobs:
           pip install -e ".[dev]"
           
       - name: Run tests
-        run: pytest tests/ -v
+        run: |
+          # Run each test file separately to avoid Prometheus registry conflicts
+          # between different services (inference vs orchestrator)
+          pytest tests/test_inference_health.py -v
+          pytest tests/test_metrics_gpu.py -v
+          pytest tests/test_orchestrator.py -v
 
   docker-build:
     name: Docker Build
