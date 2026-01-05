@@ -1,0 +1,158 @@
+services:
+  # ==========================================================================
+  # INFERENCE ENGINE - vLLM for GPU, llama.cpp for CPU
+  # ==========================================================================
+  inference:
+    build:
+      context: ./services/inference
+      dockerfile: Dockerfile
+    profiles: ["gpu"]
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL=${INFERENCE_MODEL:-meta-llama/Meta-Llama-3-8B-Instruct}
+      - MAX_MODEL_LEN=${INFERENCE_MAX_MODEL_LEN:-8192}
+      - GPU_MEMORY_UTILIZATION=${INFERENCE_GPU_MEMORY_UTILIZATION:-0.85}
+    volumes:
+      - ./models:/models
+      - huggingface-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  inference-cpu:
+    build:
+      context: ./services/inference
+      dockerfile: Dockerfile.cpu
+    profiles: ["cpu"]
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL=${FALLBACK_MODEL:-microsoft/Phi-3-mini-4k-instruct}
+    volumes:
+      - ./models:/models
+      - huggingface-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # ORCHESTRATOR - LangGraph Agent Coordinator
+  # ==========================================================================
+  orchestrator:
+    build:
+      context: ./services/orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - INFERENCE_URL=http://inference:8000
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-agentlens}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-agentlens}
+      - MAX_CONCURRENT_AGENTS=${MAX_CONCURRENT_AGENTS:-2}
+      - AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # DASHBOARD - React Frontend
+  # ==========================================================================
+  dashboard:
+    build:
+      context: ./services/dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      - ORCHESTRATOR_URL=http://orchestrator:8001
+      - METRICS_URL=http://prometheus:9090
+    depends_on:
+      - orchestrator
+
+  # ==========================================================================
+  # METRICS - Prometheus + GPU Exporter
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+  gpu-exporter:
+    build:
+      context: ./services/metrics
+      dockerfile: Dockerfile
+    profiles: ["gpu"]
+    ports:
+      - "9835:9835"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ==========================================================================
+  # GRAFANA - Dashboards
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # ==========================================================================
+  # DATABASE - PostgreSQL + pgvector
+  # ==========================================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-agentlens}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-agentlens}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentlens}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  huggingface-cache:
+  prometheus-data:
+  grafana-data:
+  postgres-data:

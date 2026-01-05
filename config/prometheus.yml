@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Inference engine metrics
+  - job_name: 'inference'
+    static_configs:
+      - targets: ['inference:8000']
+    metrics_path: /metrics
+
+  # GPU metrics exporter
+  - job_name: 'gpu'
+    static_configs:
+      - targets: ['gpu-exporter:9835']
+
+  # Orchestrator metrics
+  - job_name: 'orchestrator'
+    static_configs:
+      - targets: ['orchestrator:8001']
+    metrics_path: /metrics
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
