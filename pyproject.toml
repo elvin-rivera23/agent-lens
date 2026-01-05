@@ -35,6 +35,8 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.8.0",
     "pre-commit>=3.6.0",
+    # Inference service deps for testing
+    "pydantic-settings>=2.0.0",
     # Orchestrator deps for testing
     "langgraph>=0.2.0",
     "langchain>=0.2.0",
