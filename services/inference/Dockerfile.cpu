@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir \
     uvicorn \
     prometheus-client \
     pydantic \
+    pydantic-settings \
     httpx
 
 COPY src/ /app/

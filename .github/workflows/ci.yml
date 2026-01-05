@@ -37,10 +37,12 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install mypy pydantic fastapi prometheus-client
+          pip install mypy pydantic pydantic-settings fastapi prometheus-client psutil
           
       - name: Run mypy
-        run: mypy services/ --ignore-missing-imports
+        run: |
+          mypy services/inference/src/ --ignore-missing-imports
+          mypy services/metrics/src/ --ignore-missing-imports
 
   test:
     name: Test
@@ -56,7 +58,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pytest pytest-asyncio httpx
-          pip install fastapi uvicorn pydantic prometheus-client
+          pip install fastapi uvicorn pydantic pydantic-settings prometheus-client
           
       - name: Run tests
         run: pytest tests/ -v
