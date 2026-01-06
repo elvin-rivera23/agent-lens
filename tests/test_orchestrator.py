@@ -200,7 +200,7 @@ class TestGraphRouting:
 
     def test_should_retry_on_success(self):
         """Test that successful execution ends the graph."""
-        from graph import should_retry
+        from graph import should_retry_or_end
         from state import OrchestratorState
 
         state = OrchestratorState(
@@ -208,12 +208,12 @@ class TestGraphRouting:
             execution_success=True,
         )
 
-        result = should_retry(state)
+        result = should_retry_or_end(state)
         assert result == "end"
 
     def test_should_retry_on_failure(self):
         """Test that failure triggers retry."""
-        from graph import should_retry
+        from graph import should_retry_or_end
         from state import OrchestratorState
 
         state = OrchestratorState(
@@ -223,13 +223,13 @@ class TestGraphRouting:
             max_retries=3,
         )
 
-        result = should_retry(state)
+        result = should_retry_or_end(state)
         assert result == "retry"
         assert state.error_count == 1
 
     def test_should_end_on_max_retries(self):
         """Test that max retries ends the graph."""
-        from graph import should_retry
+        from graph import should_retry_or_end
         from state import OrchestratorState
 
         state = OrchestratorState(
@@ -239,7 +239,7 @@ class TestGraphRouting:
             max_retries=3,
         )
 
-        result = should_retry(state)
+        result = should_retry_or_end(state)
         assert result == "end"
 
 
