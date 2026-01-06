@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from events import broadcaster
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from graph import cleanup, run_orchestration
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -74,8 +75,6 @@ app = FastAPI(
 )
 
 # CORS middleware for dashboard access
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins for development

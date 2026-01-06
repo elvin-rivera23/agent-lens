@@ -5,9 +5,10 @@ Executes Python code in a sandboxed environment and captures the output.
 This is the second core agent in the M3 Vertical Slice.
 """
 
-import asyncio
+
 import logging
 import os
+import subprocess
 from pathlib import Path
 
 from agents.base import BaseAgent
@@ -93,8 +94,6 @@ class ExecutorAgent(BaseAgent):
         Returns:
             Tuple of (success, output, exit_code)
         """
-        import subprocess
-
         cmd = ["python", str(file_path)]
 
         # Validate command is in whitelist
