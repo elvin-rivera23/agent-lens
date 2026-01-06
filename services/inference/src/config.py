@@ -18,15 +18,15 @@ def get_model_path() -> str:
     model_dir = Path(os.getenv("MODEL_DIR", "./models"))
     model_path = model_dir / DEFAULT_MODEL_FILE
 
-    # If model doesn't exist, download it
+    # If model doesn't exist, try to download it (optional - we use Ollama now)
     if not model_path.exists():
         print(f"Model not found at {model_path}")
-        print(f"Downloading {DEFAULT_MODEL_FILE} from HuggingFace...")
-        print("(This is a one-time ~700MB download)")
 
         try:
             from huggingface_hub import hf_hub_download
 
+            print(f"Downloading {DEFAULT_MODEL_FILE} from HuggingFace...")
+            print("(This is a one-time ~700MB download)")
             model_dir.mkdir(parents=True, exist_ok=True)
             downloaded_path = hf_hub_download(
                 repo_id=DEFAULT_MODEL_REPO,
@@ -36,10 +36,15 @@ def get_model_path() -> str:
             )
             print(f"Model downloaded to: {downloaded_path}")
             return str(downloaded_path)
+        except ImportError:
+            # huggingface_hub not installed - use Ollama container instead
+            print("WARNING: huggingface_hub not installed, model download skipped")
+            print("Use Ollama container for inference (docker compose --profile cpu up)")
+            return str(model_path)  # Return path anyway, will fail at runtime if used
         except Exception as e:
             print(f"Error downloading model: {e}")
             print("Please download manually or set MODEL_PATH env var")
-            raise
+            return str(model_path)  # Return path anyway
 
     return str(model_path)
 

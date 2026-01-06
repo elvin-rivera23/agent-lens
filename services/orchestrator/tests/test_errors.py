@@ -1,6 +1,5 @@
 """Tests for error classification and recovery system."""
 
-import pytest
 
 from errors import (
     ClassifiedError,

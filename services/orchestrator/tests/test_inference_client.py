@@ -1,15 +1,14 @@
 """Tests for inference client abstraction."""
 
 import pytest
-
 from inference_client import (
     CompletionRequest,
     CompletionResponse,
+    InferenceClientFactory,
     InferenceConfig,
     InferenceRuntime,
     LlamaCppClient,
     VLLMClient,
-    InferenceClientFactory,
 )
 
 

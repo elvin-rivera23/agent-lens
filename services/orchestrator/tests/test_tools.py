@@ -1,16 +1,11 @@
 """Tests for the tool system."""
 
-import tempfile
 from pathlib import Path
 
-import pytest
-
 from tools import (
-    BaseTool,
     FileReadTool,
     GrepTool,
     ToolRegistry,
-    ToolResult,
     create_default_registry,
 )
 
@@ -138,7 +133,7 @@ class TestFileReadTool:
             assert "Line 4" in result.output
             # Line 1 and 5 should not be in output
             lines = result.output.split("\n")
-            content_lines = [l for l in lines if "|" in l]
+            content_lines = [line for line in lines if "|" in line]
             assert len(content_lines) == 3
         finally:
             tools.WORKSPACE_DIR = original_workspace
