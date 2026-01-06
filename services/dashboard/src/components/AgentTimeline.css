@@ -1,0 +1,181 @@
+.agent-timeline {
+    height: 100%;
+}
+
+.timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.timeline-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.agent-node {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    width: 100%;
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-node::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--agent-color);
+    opacity: 0.3;
+    transition: var(--transition-normal);
+}
+
+.agent-node.active {
+    border-color: var(--agent-color);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--agent-color) 30%, transparent);
+    animation: agent-pulse 2s infinite;
+}
+
+.agent-node.active::before {
+    opacity: 1;
+    box-shadow: 0 0 10px var(--agent-color);
+}
+
+@keyframes agent-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.01);
+    }
+}
+
+.agent-node.complete {
+    border-color: var(--color-green);
+    opacity: 0.7;
+}
+
+.agent-node.error {
+    border-color: var(--color-red);
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+.agent-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--agent-color) 20%, transparent);
+    border-radius: var(--radius-md);
+    color: var(--agent-color);
+}
+
+.agent-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.agent-name {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--color-text-primary);
+}
+
+.agent-status-text {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    letter-spacing: 1px;
+}
+
+.agent-node.active .agent-status-text {
+    color: var(--agent-color);
+}
+
+.status-indicator {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pulse-ring {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--agent-color);
+    animation: pulse-ring-anim 1.5s infinite;
+}
+
+@keyframes pulse-ring-anim {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0 0 var(--agent-color);
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+        box-shadow: 0 0 10px 5px transparent;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0 0 var(--agent-color);
+    }
+}
+
+.timeline-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-xs) 0;
+}
+
+.connector-line {
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(180deg, var(--color-cyan), var(--color-magenta));
+    opacity: 0.3;
+}
+
+.connector-arrow {
+    color: var(--color-text-muted);
+    font-size: 8px;
+    opacity: 0.5;
+}
