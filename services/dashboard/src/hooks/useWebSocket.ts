@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { AgentEvent, OrchestratorStatus } from '../types';
 
-const ORCHESTRATOR_WS_URL = 'ws://localhost:8001/ws/events';
+const ORCHESTRATOR_WS_URL = 'ws://localhost:8002/ws/events';
 const RECONNECT_DELAY = 3000;
 const MAX_EVENTS = 100;
 
