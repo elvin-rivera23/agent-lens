@@ -7,6 +7,7 @@ Supports MOCK_MODE for local testing without inference.
 """
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -16,6 +17,7 @@ import httpx
 from events import broadcaster
 from state import OrchestratorState
 from telemetry import record_tokens, track_agent
+from tools import ToolRegistry, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -61,15 +63,17 @@ class BaseAgent(ABC):
     - A unique name for identification and telemetry
     - A system prompt defining its role
     - An invoke method that processes state and returns updated state
+    - Optional tool registry for function calling
     """
 
     name: str = "base"
     system_prompt: str = "You are a helpful assistant."
 
-    def __init__(self):
+    def __init__(self, tools: ToolRegistry | None = None):
         self.inference_url = os.getenv("INFERENCE_URL", "http://localhost:8000")
         self.timeout = float(os.getenv("AGENT_TIMEOUT", "60"))
         self._client = httpx.AsyncClient(timeout=self.timeout)
+        self._tools = tools
 
     async def close(self) -> None:
         """Close the HTTP client."""
@@ -83,6 +87,85 @@ class BaseAgent(ABC):
         Must be implemented by subclasses.
         """
         raise NotImplementedError
+
+    def get_tool_schemas(self) -> list[dict]:
+        """Get OpenAI function schemas for registered tools."""
+        if self._tools is None:
+            return []
+        return self._tools.get_schemas()
+
+    def execute_tool(self, tool_name: str, **kwargs) -> ToolResult:
+        """
+        Execute a registered tool.
+
+        Args:
+            tool_name: Name of the tool to execute
+            **kwargs: Arguments to pass to the tool
+
+        Returns:
+            ToolResult with success status and output
+        """
+        if self._tools is None:
+            return ToolResult(
+                success=False,
+                output="",
+                error="No tools registered for this agent",
+            )
+
+        logger.info(f"[{self.name}] Executing tool: {tool_name}")
+        result = self._tools.execute(tool_name, **kwargs)
+
+        if result.success:
+            logger.info(f"[{self.name}] Tool {tool_name} succeeded")
+        else:
+            logger.warning(f"[{self.name}] Tool {tool_name} failed: {result.error}")
+
+        return result
+
+    def parse_tool_calls(self, response: str) -> list[dict]:
+        """
+        Parse tool calls from LLM response.
+
+        Looks for JSON blocks with tool_call format:
+        {"tool": "grep", "args": {"pattern": "def foo"}}
+
+        Returns:
+            List of tool call dicts with 'tool' and 'args' keys
+        """
+        tool_calls = []
+
+        # Try to find tool call JSON blocks
+        import re
+
+        # Match ```json ... ``` or ```tool ... ``` blocks
+        json_pattern = r"```(?:json|tool)?\s*(\{[^`]*?\})\s*```"
+        matches = re.findall(json_pattern, response, re.DOTALL)
+
+        for match in matches:
+            try:
+                data = json.loads(match)
+                if "tool" in data:
+                    tool_calls.append({
+                        "tool": data["tool"],
+                        "args": data.get("args", {}),
+                    })
+            except json.JSONDecodeError:
+                continue
+
+        # Also try inline JSON without code blocks
+        inline_pattern = r'\{"tool"\s*:\s*"(\w+)"[^}]*\}'
+        for match in re.finditer(inline_pattern, response):
+            try:
+                data = json.loads(match.group(0))
+                if "tool" in data and data not in tool_calls:
+                    tool_calls.append({
+                        "tool": data["tool"],
+                        "args": data.get("args", {}),
+                    })
+            except json.JSONDecodeError:
+                continue
+
+        return tool_calls
 
     async def call_llm(self, messages: list[dict], max_tokens: int = 1024) -> str:
         """
