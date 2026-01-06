@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from events import broadcaster
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from graph import cleanup, run_orchestration
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -71,6 +72,15 @@ app = FastAPI(
     description="Multi-agent code generation and execution with Glass-Box observability",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+# CORS middleware for dashboard access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

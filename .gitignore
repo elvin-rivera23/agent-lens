@@ -65,3 +65,6 @@ htmlcov/
 
 # Planning (private)
 MILESTONES.md
+
+# Generated workspace files
+workspace/

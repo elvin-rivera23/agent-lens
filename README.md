@@ -42,29 +42,52 @@ flowchart TB
 
 ## Quick Start
 
-### GPU Mode (Windows/Linux with NVIDIA GPU)
+### Option 1: Docker (Recommended)
+
+**Prerequisites:** Docker Desktop
 
 ```bash
-docker compose --profile gpu up -d
+git clone https://github.com/elvin-rivera23/agent-lens.git
+cd agent-lens
+docker compose --profile cpu up
 ```
 
-### CPU Mode (Mac M1 / No GPU)
+> ⏱ **First run**: ~5-10 min to download TinyLlama model (~700MB).
+
+Open http://localhost:3000 and enter a coding task!
+
+---
+
+### Option 2: Local Development (Ollama)
+
+**Prerequisites:** Python 3.11+, Node.js 18+, [Ollama](https://ollama.com/download)
 
 ```bash
-docker compose --profile cpu up -d
+# 1. Clone & install
+git clone https://github.com/elvin-rivera23/agent-lens.git
+cd agent-lens
+
+# 2. Pull the model (~700MB)
+ollama pull tinyllama
+
+# 3. Start orchestrator
+cd services/orchestrator
+pip install -r requirements.txt
+$env:INFERENCE_URL='http://localhost:11434'
+$env:WORKSPACE_DIR='./workspace'
+cd src && python -m uvicorn main:app --port 8001 --reload
+
+# 4. Start dashboard (new terminal)
+cd services/dashboard
+npm install && npm run dev
 ```
 
-### Open Dashboard
-
-```
-http://localhost:3000
-```
+Open http://localhost:5173 and enter a coding task!
 
 ## Requirements
 
-- Docker + Docker Compose
-- **GPU Mode**: NVIDIA GPU with 12GB+ VRAM, NVIDIA Container Toolkit
-- **CPU Mode**: 16GB+ RAM
+- **Docker Mode**: Docker Desktop
+- **Local Mode**: Python 3.11+, Node.js 18+, Ollama
 
 ## Project Structure
 

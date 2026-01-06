@@ -39,23 +39,25 @@ Given a coding task, you will:
 2. Write clean, working Python code
 3. Include a simple test/demo at the end that shows the code works
 
-IMPORTANT RULES:
+CRITICAL RULES - MUST FOLLOW:
 - Output ONLY a single Python code block with ```python ... ```
-- Do NOT include any explanations before or after the code
-- Make the code self-contained and runnable
+- ALL code MUST be in a SINGLE FILE - no separate files, no project structure
+- Do NOT create files, directories, or write to disk
+- Do NOT import from local modules - only use standard library and common packages (pygame, requests, flask, numpy, etc)
+- Make the code SELF-CONTAINED and immediately runnable with `python file.py`
 - Include a main block that demonstrates the code works
+- For games: use pygame and keep all code in one file
+- For APIs: use Flask/FastAPI and keep all code in one file
 
 Example output format:
 ```python
-def fibonacci(n):
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)
+# Complete self-contained code here
+def my_function():
+    pass
 
 if __name__ == "__main__":
-    # Test the function
-    for i in range(10):
-        print(f"fibonacci({i}) = {fibonacci(i)}")
+    # Demo/test the code
+    my_function()
 ```"""
 
     def __init__(self):

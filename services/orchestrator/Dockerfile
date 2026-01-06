@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Common packages for generated code execution
+RUN pip install --no-cache-dir pygame numpy requests flask
+
 COPY src/ ./src/
 
 # Sandboxed workspace for agent file operations
