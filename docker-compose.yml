@@ -29,23 +29,32 @@ services:
       timeout: 10s
       retries: 3
 
-  inference-cpu:
-    build:
-      context: ./services/inference
-      dockerfile: Dockerfile.cpu
+  # Ollama container for CPU inference with better models
+  ollama:
+    image: ollama/ollama:latest
     profiles: [ "cpu" ]
     ports:
-      - "8000:8000"
-    environment:
-      - MODEL=${FALLBACK_MODEL:-microsoft/Phi-3-mini-4k-instruct}
+      - "11434:11434"
     volumes:
-      - ./models:/models
-      - huggingface-cache:/root/.cache/huggingface
+      - ollama-data:/root/.ollama
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: [ "CMD", "ollama", "list" ]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
+
+  # Model puller - pulls Mistral on first run
+  ollama-pull:
+    image: ollama/ollama:latest
+    profiles: [ "cpu" ]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: [ "ollama", "pull", "mistral" ]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
 
   # ==========================================================================
   # ORCHESTRATOR - LangGraph Agent Coordinator
@@ -54,15 +63,46 @@ services:
     build:
       context: ./services/orchestrator
       dockerfile: Dockerfile
+    profiles: [ "gpu" ]
     ports:
       - "8001:8001"
     environment:
       - INFERENCE_URL=http://inference:8000
-      - POSTGRES_URL=postgresql://${POSTGRES_USER:-agentlens}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-agentlens}
-      - MAX_CONCURRENT_AGENTS=${MAX_CONCURRENT_AGENTS:-2}
+      - WORKSPACE_DIR=/workspace
       - AGENT_TIMEOUT=${AGENT_TIMEOUT:-60}
+    volumes:
+      - workspace-data:/workspace
     depends_on:
-      - postgres
+      inference:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  orchestrator-cpu:
+    build:
+      context: ./services/orchestrator
+      dockerfile: Dockerfile
+    profiles: [ "cpu" ]
+    ports:
+      - "8001:8001"
+    environment:
+      # Use Ollama container for better model quality
+      - INFERENCE_URL=http://ollama:11434
+      - INFERENCE_MODEL=mistral
+      - WORKSPACE_DIR=/workspace
+      - AGENT_TIMEOUT=${AGENT_TIMEOUT:-120}
+    volumes:
+      - workspace-data:/workspace
+    networks:
+      default:
+        aliases:
+          - orchestrator
+    depends_on:
+      ollama:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
       interval: 30s
@@ -76,13 +116,27 @@ services:
     build:
       context: ./services/dashboard
       dockerfile: Dockerfile
+    profiles: [ "gpu" ]
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
     environment:
-      - ORCHESTRATOR_URL=http://orchestrator:8001
-      - METRICS_URL=http://prometheus:9090
+      - VITE_ORCHESTRATOR_URL=http://localhost:8001
+      - VITE_WS_URL=ws://localhost:8001
     depends_on:
       - orchestrator
+
+  dashboard-cpu:
+    build:
+      context: ./services/dashboard
+      dockerfile: Dockerfile
+    profiles: [ "cpu" ]
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      - VITE_ORCHESTRATOR_URL=http://localhost:8001
+      - VITE_WS_URL=ws://localhost:8001
+    depends_on:
+      - orchestrator-cpu
 
   # ==========================================================================
   # METRICS - Prometheus + GPU Exporter
@@ -169,3 +223,5 @@ volumes:
   prometheus-data:
   grafana-data:
   postgres-data:
+  workspace-data:
+  ollama-data:

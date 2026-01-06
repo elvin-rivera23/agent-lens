@@ -1,11 +1,71 @@
+import { useState, useEffect } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import { EventStream } from './components/EventStream';
 import { AgentTimeline } from './components/AgentTimeline';
+import { TaskInput } from './components/TaskInput';
 import { useWebSocket } from './hooks/useWebSocket';
+
+const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || 'http://localhost:8001';
 
 function App() {
   const { events, status, clearEvents } = useWebSocket();
+  const [isLoading, setIsLoading] = useState(false);
+  const [codeOutput, setCodeOutput] = useState<string | null>(null);
+  const [lastTask, setLastTask] = useState<string | null>(null);
+
+  // Update code output based on WebSocket events in real-time
+  useEffect(() => {
+    if (events.length === 0) return;
+
+    const latestEvent = events[0]; // events are prepended, so [0] is most recent
+
+    // Show code when written
+    if (latestEvent.type === 'code_written' && typeof latestEvent.data?.code === 'string') {
+      setCodeOutput(latestEvent.data.code);
+    }
+
+    // Show execution result
+    if (latestEvent.type === 'execution') {
+      const { success, output, exit_code } = latestEvent.data || {};
+      const prefix = success ? '// ✓ Execution successful' : `// ✗ Execution failed (exit ${exit_code})`;
+      setCodeOutput(prev => prev ? `${prev}\n\n${prefix}\n${output}` : `${prefix}\n${output}`);
+    }
+
+    // Show errors
+    if (latestEvent.type === 'error') {
+      setCodeOutput(prev => prev ? `${prev}\n\n// Error: ${latestEvent.data?.error}` : `// Error: ${latestEvent.data?.error}`);
+    }
+  }, [events]);
+
+  const handleTaskSubmit = async (task: string) => {
+    setIsLoading(true);
+    setLastTask(task);
+    setCodeOutput(null);
+    clearEvents();
+
+    try {
+      const response = await fetch(`${ORCHESTRATOR_URL}/orchestrate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ task }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCodeOutput(data.code);
+      } else {
+        setCodeOutput(`// Error: ${data.execution_output || 'Task failed'}`);
+      }
+    } catch (error) {
+      setCodeOutput(`// Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="app">
@@ -19,6 +79,7 @@ function App() {
         <section className="content-area">
           <div className="content-grid">
             <div className="event-panel">
+              <TaskInput onSubmit={handleTaskSubmit} isLoading={isLoading} />
               <EventStream events={events} onClear={clearEvents} />
             </div>
 
@@ -35,11 +96,12 @@ function App() {
             <div className="code-panel card">
               <div className="card-header">
                 <span>💻 CODE OUTPUT</span>
+                {lastTask && <span className="task-label">Task: {lastTask.slice(0, 40)}...</span>}
               </div>
               <div className="code-placeholder scanlines">
                 <pre className="code-content">
-                  {`// Awaiting code generation...
-// Agent output will appear here
+                  {codeOutput || `// Awaiting code generation...
+// Submit a task above to see agent output
 
 async function orchestrate(task: string) {
   const plan = await architect.analyze(task);

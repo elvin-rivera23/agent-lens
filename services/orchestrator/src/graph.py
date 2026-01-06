@@ -118,14 +118,8 @@ def build_orchestration_graph() -> StateGraph:
     """
     Build the LangGraph state machine.
 
-    Graph structure:
-        START → architect → coder → reviewer → [review check]
-                             ↑_______________|
-                                 (fix code)
-                                             ↓
-                                        executor → [exec check]
-                             ↑___________________________|
-                                    (runtime error)
+    Graph structure (simplified for demo, no retries):
+        START → architect → coder → reviewer → executor → END
     """
     graph = StateGraph(OrchestratorState)
 
@@ -138,29 +132,11 @@ def build_orchestration_graph() -> StateGraph:
     # Set entry point
     graph.set_entry_point("architect")
 
-    # Linear edges
+    # Simple linear flow - no retries for now
     graph.add_edge("architect", "coder")
     graph.add_edge("coder", "reviewer")
-
-    # Conditional edge: reviewer → executor or coder
-    graph.add_conditional_edges(
-        "reviewer",
-        should_execute_or_fix,
-        {
-            "execute": "executor",
-            "fix": "coder",
-        },
-    )
-
-    # Conditional edge: executor → end or coder
-    graph.add_conditional_edges(
-        "executor",
-        should_retry_or_end,
-        {
-            "retry": "coder",
-            "end": END,
-        },
-    )
+    graph.add_edge("reviewer", "executor")
+    graph.add_edge("executor", END)
 
     return graph
 

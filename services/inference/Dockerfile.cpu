@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir \
     prometheus-client \
     pydantic \
     pydantic-settings \
-    httpx
+    httpx \
+    huggingface-hub
 
 COPY src/ /app/
 

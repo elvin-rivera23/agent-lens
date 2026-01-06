@@ -44,7 +44,7 @@ class ExecutorAgent(BaseAgent):
         """
         Execute the generated code and capture the result.
         """
-        file_path = Path(state.file_path)
+        file_path = Path(state.file_path).resolve()
 
         # Validate file exists
         if not file_path.exists():
@@ -56,16 +56,20 @@ class ExecutorAgent(BaseAgent):
             return state
 
         # Validate file is in workspace (security)
-        workspace = Path(os.getenv("WORKSPACE_DIR", "/workspace"))
+        workspace = Path(os.getenv("WORKSPACE_DIR", "/workspace")).resolve()
         try:
             file_path.relative_to(workspace)
         except ValueError:
-            error = f"Security: File {file_path} is outside workspace"
-            state.execution_output = error
-            state.execution_success = False
-            state.add_history(self.name, "execute", error)
-            await broadcaster.emit_error(self.name, error)
-            return state
+            # On Windows, paths may have different formats, try string comparison
+            file_str = str(file_path).lower()
+            workspace_str = str(workspace).lower()
+            if not file_str.startswith(workspace_str):
+                error = f"Security: File {file_path} is outside workspace"
+                state.execution_output = error
+                state.execution_success = False
+                state.add_history(self.name, "execute", error)
+                await broadcaster.emit_error(self.name, error)
+                return state
 
         # Execute the file
         success, output, exit_code = await self._execute_python(file_path)
@@ -89,6 +93,8 @@ class ExecutorAgent(BaseAgent):
         Returns:
             Tuple of (success, output, exit_code)
         """
+        import subprocess
+
         cmd = ["python", str(file_path)]
 
         # Validate command is in whitelist
@@ -96,35 +102,25 @@ class ExecutorAgent(BaseAgent):
             return False, f"Command not allowed: {cmd[0]}", -1
 
         try:
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            # Use subprocess.run for Windows compatibility
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=EXECUTION_TIMEOUT,
                 cwd=file_path.parent,
             )
 
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=EXECUTION_TIMEOUT,
-                )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                return False, f"Execution timed out after {EXECUTION_TIMEOUT}s", -1
-
             # Combine stdout and stderr
-            output = ""
-            if stdout:
-                output += stdout.decode("utf-8", errors="replace")
-            if stderr:
-                output += "\n--- STDERR ---\n" + stderr.decode("utf-8", errors="replace")
+            output = result.stdout
+            if result.stderr:
+                output += "\n--- STDERR ---\n" + result.stderr
 
-            exit_code = process.returncode or 0
-            success = exit_code == 0
+            success = result.returncode == 0
+            return success, output.strip(), result.returncode
 
-            return success, output.strip(), exit_code
-
+        except subprocess.TimeoutExpired:
+            return False, f"Execution timed out after {EXECUTION_TIMEOUT}s", -1
         except Exception as e:
             logger.exception(f"[{self.name}] Execution error: {e}")
             return False, f"Execution error: {e}", -1

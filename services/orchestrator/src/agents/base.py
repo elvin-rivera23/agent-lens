@@ -28,39 +28,6 @@ from tools import ToolRegistry, ToolResult
 
 logger = logging.getLogger(__name__)
 
-# Mock mode for testing without inference service
-MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
-
-# Mock responses for each agent type
-MOCK_RESPONSES = {
-    "architect": """{
-    "summary": "Create a simple fibonacci function",
-    "subtasks": [
-        {"id": 1, "title": "Fibonacci Function", "description": "Implement fibonacci sequence generator", "dependencies": []}
-    ]
-}""",
-    "coder": '''```python
-def fibonacci(n):
-    """Generate fibonacci sequence up to n terms."""
-    if n <= 0:
-        return []
-    elif n == 1:
-        return [0]
-    elif n == 2:
-        return [0, 1]
-
-    fib = [0, 1]
-    for i in range(2, n):
-        fib.append(fib[i-1] + fib[i-2])
-    return fib
-
-if __name__ == "__main__":
-    result = fibonacci(10)
-    print(f"Fibonacci sequence: {result}")
-```''',
-    "reviewer": "All checks passed. Code is syntactically correct and follows best practices.",
-}
-
 
 class BaseAgent(ABC):
     """
@@ -190,19 +157,14 @@ class BaseAgent(ABC):
         Raises:
             Exception: If all retries are exhausted
         """
-        # Mock mode - return canned responses
-        if MOCK_MODE:
-            logger.info(f"[{self.name}] MOCK_MODE: Returning canned response")
-            await asyncio.sleep(0.5)  # Simulate some latency
-            response = MOCK_RESPONSES.get(self.name, "Mock response for " + self.name)
-            record_tokens(self.name, len(response.split()))
-            return response
-
         # Prepend system prompt
         full_messages = [{"role": "system", "content": self.system_prompt}, *messages]
 
+        # Model name - default to tinyllama for Ollama
+        model_name = os.getenv("INFERENCE_MODEL", "tinyllama")
+
         payload = {
-            "model": "default",
+            "model": model_name,
             "messages": full_messages,
             "max_tokens": max_tokens,
             "temperature": 0.7,
