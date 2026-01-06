@@ -1,7 +1,12 @@
 """
 LangGraph State Machine
 
-Defines the orchestration graph: Coder → Executor with retry loop.
+Defines the full 4-agent orchestration graph:
+Architect → Coder → Reviewer → Executor
+
+With retry loops:
+- Reviewer → Coder (on review failure)
+- Executor → Coder (on runtime error)
 """
 
 import logging
@@ -12,7 +17,7 @@ from langgraph.graph import END, StateGraph
 from state import OrchestratorState
 from telemetry import ORCHESTRATION_FAILURES, ORCHESTRATION_RETRIES, ORCHESTRATION_SUCCESSES
 
-from agents import CoderAgent, ExecutorAgent
+from agents import ArchitectAgent, CoderAgent, ExecutorAgent, ReviewerAgent
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,9 @@ logger = logging.getLogger(__name__)
 # Agent Instances
 # =============================================================================
 
+architect_agent = ArchitectAgent()
 coder_agent = CoderAgent()
+reviewer_agent = ReviewerAgent()
 executor_agent = ExecutorAgent()
 
 
@@ -30,9 +37,19 @@ executor_agent = ExecutorAgent()
 # =============================================================================
 
 
+async def architect_node(state: OrchestratorState) -> OrchestratorState:
+    """Architect agent node - creates execution plan."""
+    return await architect_agent.run_with_telemetry(state)
+
+
 async def coder_node(state: OrchestratorState) -> OrchestratorState:
     """Coder agent node - generates code and writes to file."""
     return await coder_agent.run_with_telemetry(state)
+
+
+async def reviewer_node(state: OrchestratorState) -> OrchestratorState:
+    """Reviewer agent node - checks code quality."""
+    return await reviewer_agent.run_with_telemetry(state)
 
 
 async def executor_node(state: OrchestratorState) -> OrchestratorState:
@@ -45,7 +62,28 @@ async def executor_node(state: OrchestratorState) -> OrchestratorState:
 # =============================================================================
 
 
-def should_retry(state: OrchestratorState) -> Literal["retry", "end"]:
+def should_execute_or_fix(state: OrchestratorState) -> Literal["execute", "fix"]:
+    """
+    Determine next step after code review.
+
+    Returns:
+        "execute" if review passed
+        "fix" if review failed and can retry
+    """
+    if state.review_passed:
+        logger.info("Review passed, proceeding to execution")
+        return "execute"
+
+    if state.can_retry_review():
+        logger.info(f"Review failed, retrying ({state.review_attempts}/{state.max_review_attempts})")
+        return "fix"
+
+    # Max review attempts, proceed to execution anyway
+    logger.warning("Max review attempts reached, proceeding despite failures")
+    return "execute"
+
+
+def should_retry_or_end(state: OrchestratorState) -> Literal["retry", "end"]:
     """
     Determine if we should retry after execution failure.
 
@@ -58,13 +96,14 @@ def should_retry(state: OrchestratorState) -> Literal["retry", "end"]:
         return "end"
 
     if state.can_retry():
-        # Increment error count for next iteration
         state.error_count += 1
+        # Reset review attempts for new code
+        state.review_attempts = 0
+        state.review_passed = False
         ORCHESTRATION_RETRIES.inc()
-        logger.info(f"Retrying... attempt {state.error_count}/{state.max_retries}")
+        logger.info(f"Execution failed, retrying ({state.error_count}/{state.max_retries})")
         return "retry"
 
-    # Max retries exceeded
     ORCHESTRATION_FAILURES.inc()
     logger.warning(f"Max retries ({state.max_retries}) exceeded")
     return "end"
@@ -80,30 +119,46 @@ def build_orchestration_graph() -> StateGraph:
     Build the LangGraph state machine.
 
     Graph structure:
-        START → coder → executor → [retry decision]
-                  ↑________________________|
-                        (on failure)
+        START → architect → coder → reviewer → [review check]
+                             ↑_______________|
+                                 (fix code)
+                                             ↓
+                                        executor → [exec check]
+                             ↑___________________________|
+                                    (runtime error)
     """
-    # Create graph with state schema
     graph = StateGraph(OrchestratorState)
 
-    # Add nodes
+    # Add all nodes
+    graph.add_node("architect", architect_node)
     graph.add_node("coder", coder_node)
+    graph.add_node("reviewer", reviewer_node)
     graph.add_node("executor", executor_node)
 
     # Set entry point
-    graph.set_entry_point("coder")
+    graph.set_entry_point("architect")
 
-    # Add edges
-    graph.add_edge("coder", "executor")
+    # Linear edges
+    graph.add_edge("architect", "coder")
+    graph.add_edge("coder", "reviewer")
 
-    # Conditional edge from executor
+    # Conditional edge: reviewer → executor or coder
+    graph.add_conditional_edges(
+        "reviewer",
+        should_execute_or_fix,
+        {
+            "execute": "executor",
+            "fix": "coder",
+        },
+    )
+
+    # Conditional edge: executor → end or coder
     graph.add_conditional_edges(
         "executor",
-        should_retry,
+        should_retry_or_end,
         {
-            "retry": "coder",  # Loop back on failure
-            "end": END,  # Finish on success or max retries
+            "retry": "coder",
+            "end": END,
         },
     )
 
@@ -127,25 +182,22 @@ async def run_orchestration(task: str) -> OrchestratorState:
         task: The user's coding request
 
     Returns:
-        Final state with code, execution output, etc.
+        Final state with plan, code, review, execution output, etc.
     """
-    # Initialize state
     initial_state = OrchestratorState(task=task)
 
-    # Emit start event
     await broadcaster.emit(EventType.AGENT_START, "orchestrator", {"task": task})
 
     try:
-        # Run the graph
         final_state = await orchestration_graph.ainvoke(initial_state)
 
-        # Emit completion event
         await broadcaster.emit(
             EventType.COMPLETE,
             "orchestrator",
             {
                 "success": final_state.execution_success,
                 "retries": final_state.error_count,
+                "review_passed": final_state.review_passed,
             },
         )
 
@@ -159,5 +211,7 @@ async def run_orchestration(task: str) -> OrchestratorState:
 
 async def cleanup():
     """Cleanup agent resources."""
+    await architect_agent.close()
     await coder_agent.close()
+    await reviewer_agent.close()
     await executor_agent.close()
