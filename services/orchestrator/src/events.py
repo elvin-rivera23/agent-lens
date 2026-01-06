@@ -40,9 +40,11 @@ class AgentEvent:
 
     def to_json(self) -> str:
         """Serialize event to JSON."""
+        # Handle both EventType enum and string types
+        event_type = self.type.value if hasattr(self.type, 'value') else str(self.type)
         return json.dumps(
             {
-                "type": self.type.value,
+                "type": event_type,
                 "agent": self.agent,
                 "data": self.data,
                 "timestamp": self.timestamp,

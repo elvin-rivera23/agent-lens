@@ -165,8 +165,9 @@ def build_orchestration_graph() -> StateGraph:
     return graph
 
 
-# Compile the graph
+# Compile the graph with higher recursion limit
 orchestration_graph = build_orchestration_graph().compile()
+orchestration_graph.recursion_limit = 50
 
 
 # =============================================================================
@@ -189,7 +190,16 @@ async def run_orchestration(task: str) -> OrchestratorState:
     await broadcaster.emit(EventType.AGENT_START, "orchestrator", {"task": task})
 
     try:
-        final_state = await orchestration_graph.ainvoke(initial_state)
+        result = await orchestration_graph.ainvoke(
+            initial_state,
+            config={"recursion_limit": 50}
+        )
+
+        # LangGraph may return dict or state object depending on version
+        if isinstance(result, dict):
+            final_state = OrchestratorState(**result)
+        else:
+            final_state = result
 
         await broadcaster.emit(
             EventType.COMPLETE,
