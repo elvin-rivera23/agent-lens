@@ -274,3 +274,207 @@ class TestEvents:
         assert '"type": "agent_start"' in json_str
         assert '"agent": "coder"' in json_str
         assert '"task": "test"' in json_str
+
+
+class TestArchitectAgent:
+    """Tests for ArchitectAgent plan parsing."""
+
+    def test_parse_plan_json(self):
+        """Test parsing a valid JSON plan."""
+        from agents.architect import ArchitectAgent
+
+        agent = ArchitectAgent()
+
+        response = '''{
+            "summary": "Create a hello world app",
+            "subtasks": [
+                {"id": 1, "title": "Main function", "description": "Create main", "dependencies": []}
+            ]
+        }'''
+
+        plan = agent._parse_plan(response)
+        assert plan is not None
+        assert plan["summary"] == "Create a hello world app"
+        assert len(plan["subtasks"]) == 1
+
+    def test_parse_plan_in_code_block(self):
+        """Test parsing JSON wrapped in code block."""
+        from agents.architect import ArchitectAgent
+
+        agent = ArchitectAgent()
+
+        response = '''Here is the plan:
+```json
+{
+    "summary": "Test plan",
+    "subtasks": [{"id": 1, "title": "Task 1", "description": "Do thing", "dependencies": []}]
+}
+```'''
+
+        plan = agent._parse_plan(response)
+        assert plan is not None
+        assert plan["summary"] == "Test plan"
+
+    def test_parse_plan_invalid(self):
+        """Test parsing invalid response returns None."""
+        from agents.architect import ArchitectAgent
+
+        agent = ArchitectAgent()
+
+        response = "I don't understand what you want."
+        plan = agent._parse_plan(response)
+        assert plan is None
+
+
+class TestReviewerAgent:
+    """Tests for ReviewerAgent code checks."""
+
+    def test_syntax_check_valid(self):
+        """Test syntax check on valid code."""
+        from agents.reviewer import ReviewerAgent
+
+        agent = ReviewerAgent()
+
+        code = """
+def hello():
+    return "world"
+"""
+        ok, error = agent._check_syntax(code)
+        assert ok is True
+        assert error == ""
+
+    def test_syntax_check_invalid(self):
+        """Test syntax check on invalid code."""
+        from agents.reviewer import ReviewerAgent
+
+        agent = ReviewerAgent()
+
+        code = "def broken(:\n    pass"
+        ok, error = agent._check_syntax(code)
+        assert ok is False
+        assert "syntax" in error.lower() or "Line" in error
+
+    def test_security_check_eval(self):
+        """Test security check detects eval."""
+        from agents.reviewer import ReviewerAgent
+
+        agent = ReviewerAgent()
+
+        code = 'result = eval("1 + 2")'
+        issues = agent._check_security(code)
+        assert len(issues) > 0
+        assert any("eval" in issue for issue in issues)
+
+    def test_security_check_clean(self):
+        """Test security check on clean code."""
+        from agents.reviewer import ReviewerAgent
+
+        agent = ReviewerAgent()
+
+        code = """
+import math
+
+def calculate(x):
+    return math.sqrt(x)
+"""
+        issues = agent._check_security(code)
+        assert len(issues) == 0
+
+
+class TestNewStateFields:
+    """Tests for new state fields added in M3.5."""
+
+    def test_state_has_plan_fields(self):
+        """Test state has architect fields."""
+        from state import OrchestratorState
+
+        state = OrchestratorState(task="test")
+        assert state.plan == {}
+        assert state.current_subtask == 0
+
+    def test_state_has_review_fields(self):
+        """Test state has reviewer fields."""
+        from state import OrchestratorState
+
+        state = OrchestratorState(task="test")
+        assert state.review_passed is False
+        assert state.review_feedback == ""
+        assert state.review_attempts == 0
+        assert state.max_review_attempts == 2
+
+    def test_can_retry_review(self):
+        """Test review retry logic."""
+        from state import OrchestratorState
+
+        state = OrchestratorState(task="test", max_review_attempts=2)
+        assert state.can_retry_review() is True
+
+        state.review_attempts = 1
+        assert state.can_retry_review() is True
+
+        state.review_attempts = 2
+        assert state.can_retry_review() is False
+
+    def test_get_current_subtask_description(self):
+        """Test getting subtask description from plan."""
+        from state import OrchestratorState
+
+        state = OrchestratorState(task="Original task")
+
+        # No plan - should return original task
+        assert state.get_current_subtask_description() == "Original task"
+
+        # With plan
+        state.plan = {
+            "summary": "Test",
+            "subtasks": [
+                {"id": 1, "title": "First", "description": "Do first thing"},
+                {"id": 2, "title": "Second", "description": "Do second thing"},
+            ],
+        }
+        assert "First" in state.get_current_subtask_description()
+
+        state.current_subtask = 1
+        assert "Second" in state.get_current_subtask_description()
+
+
+class TestNewGraphRouting:
+    """Tests for new graph routing in M3.5."""
+
+    def test_should_execute_on_review_pass(self):
+        """Test that passed review goes to executor."""
+        from graph import should_execute_or_fix
+        from state import OrchestratorState
+
+        state = OrchestratorState(task="test", review_passed=True)
+        result = should_execute_or_fix(state)
+        assert result == "execute"
+
+    def test_should_fix_on_review_fail(self):
+        """Test that failed review goes back to coder."""
+        from graph import should_execute_or_fix
+        from state import OrchestratorState
+
+        state = OrchestratorState(
+            task="test",
+            review_passed=False,
+            review_attempts=0,
+            max_review_attempts=2,
+        )
+        result = should_execute_or_fix(state)
+        assert result == "fix"
+
+    def test_should_execute_on_max_review_attempts(self):
+        """Test that max review attempts proceeds to execute."""
+        from graph import should_execute_or_fix
+        from state import OrchestratorState
+
+        state = OrchestratorState(
+            task="test",
+            review_passed=False,
+            review_attempts=2,
+            max_review_attempts=2,
+        )
+        result = should_execute_or_fix(state)
+        assert result == "execute"
+

@@ -106,11 +106,24 @@ if __name__ == "__main__":
         """Build the message list for the LLM call."""
         messages = []
 
-        # Main task
-        task_prompt = f"Write Python code for the following task:\n\n{state.task}"
+        # Use subtask description if available from Architect, else use original task
+        task_description = state.get_current_subtask_description()
 
-        # If this is a retry, include error context
-        if state.error_count > 0 and state.execution_output:
+        task_prompt = f"Write Python code for the following task:\n\n{task_description}"
+
+        # Include review feedback if this is a review fix
+        if state.review_attempts > 0 and state.review_feedback and not state.review_passed:
+            task_prompt += f"""
+
+IMPORTANT: The previous code was rejected by the reviewer:
+```
+{state.review_feedback}
+```
+
+Please fix the code to address these issues."""
+
+        # Include execution error if this is a runtime retry
+        elif state.error_count > 0 and state.execution_output:
             task_prompt += f"""
 
 IMPORTANT: The previous code attempt failed with this error:
