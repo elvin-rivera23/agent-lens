@@ -1,0 +1,104 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    background: linear-gradient(180deg, var(--color-bg-secondary), transparent);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    position: relative;
+}
+
+.header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+}
+
+.header-brand h1 {
+    font-size: 28px;
+    margin: 0;
+    letter-spacing: 4px;
+}
+
+.header-brand .accent {
+    color: var(--color-magenta);
+}
+
+.header-subtitle {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.active-agent {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: rgba(255, 0, 170, 0.2);
+    border: 1px solid var(--color-magenta);
+    border-radius: var(--radius-sm);
+    color: var(--color-magenta);
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.task-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: rgba(255, 107, 0, 0.2);
+    border: 1px solid var(--color-orange);
+    border-radius: var(--radius-sm);
+    color: var(--color-orange);
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.task-indicator .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+.connection-status.connected {
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid var(--color-green);
+    color: var(--color-green);
+}
+
+.connection-status.disconnected {
+    background: rgba(255, 51, 102, 0.15);
+    border: 1px solid var(--color-red);
+    color: var(--color-red);
+}
