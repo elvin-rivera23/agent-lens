@@ -7,7 +7,6 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-
 # Default model - TinyLlama is small (~700MB) and fast on CPU
 DEFAULT_MODEL_REPO = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF"
 DEFAULT_MODEL_FILE = "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
