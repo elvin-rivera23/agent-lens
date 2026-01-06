@@ -14,6 +14,13 @@ import time
 from abc import ABC, abstractmethod
 
 import httpx
+from errors import (
+    CONNECTION_RETRY_POLICY,
+    JSON_PARSE_RETRY_POLICY,
+    ErrorClassifier,
+    RecoveryStrategy,
+    get_fix_prompt,
+)
 from events import broadcaster
 from state import OrchestratorState
 from telemetry import record_tokens, track_agent
@@ -171,12 +178,17 @@ class BaseAgent(ABC):
         """
         Call the inference service with OpenAI-compatible API.
 
+        Includes automatic retry with exponential backoff for connection errors.
+
         Args:
             messages: List of message dicts with 'role' and 'content'
             max_tokens: Maximum tokens to generate
 
         Returns:
             The generated text response
+
+        Raises:
+            Exception: If all retries are exhausted
         """
         # Mock mode - return canned responses
         if MOCK_MODE:
@@ -196,38 +208,120 @@ class BaseAgent(ABC):
             "temperature": 0.7,
         }
 
-        start_time = time.perf_counter()
+        classifier = ErrorClassifier()
+        last_error = None
 
-        try:
-            response = await self._client.post(
-                f"{self.inference_url}/v1/chat/completions",
-                json=payload,
-            )
-            response.raise_for_status()
-            data = response.json()
+        # Retry loop with exponential backoff for connection errors
+        for attempt in range(CONNECTION_RETRY_POLICY.max_retries + 1):
+            start_time = time.perf_counter()
 
-            # Extract response text
-            content = data["choices"][0]["message"]["content"]
+            try:
+                response = await self._client.post(
+                    f"{self.inference_url}/v1/chat/completions",
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
 
-            # Record token usage for Glass-Box metrics
-            if "usage" in data:
-                tokens = data["usage"].get("completion_tokens", 0)
-                record_tokens(self.name, tokens)
+                # Extract response text
+                content = data["choices"][0]["message"]["content"]
 
-            duration = time.perf_counter() - start_time
-            logger.info(f"[{self.name}] LLM call completed in {duration:.2f}s")
+                # Record token usage for Glass-Box metrics
+                if "usage" in data:
+                    tokens = data["usage"].get("completion_tokens", 0)
+                    record_tokens(self.name, tokens)
 
-            return content
+                duration = time.perf_counter() - start_time
+                logger.info(f"[{self.name}] LLM call completed in {duration:.2f}s")
 
-        except httpx.TimeoutException:
-            logger.error(f"[{self.name}] LLM call timed out after {self.timeout}s")
-            raise
-        except httpx.HTTPStatusError as e:
-            logger.error(f"[{self.name}] LLM call failed: {e.response.status_code}")
-            raise
-        except Exception as e:
-            logger.error(f"[{self.name}] LLM call error: {e}")
-            raise
+                return content
+
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout) as e:
+                last_error = e
+                classified = classifier.classify(e)
+
+                if classified.recovery_strategy == RecoveryStrategy.RECONNECT:
+                    if attempt < CONNECTION_RETRY_POLICY.max_retries:
+                        delay = CONNECTION_RETRY_POLICY.get_delay(attempt)
+                        logger.warning(
+                            f"[{self.name}] Connection error, retrying in {delay:.1f}s "
+                            f"(attempt {attempt + 1}/{CONNECTION_RETRY_POLICY.max_retries})"
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+
+                logger.error(f"[{self.name}] LLM call failed after retries: {e}")
+                raise
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"[{self.name}] LLM call failed: {e.response.status_code}")
+                raise
+
+            except Exception as e:
+                logger.error(f"[{self.name}] LLM call error: {e}")
+                raise
+
+        # All retries exhausted
+        if last_error:
+            raise last_error
+        raise RuntimeError("LLM call failed with no error captured")
+
+    async def call_llm_with_json_retry(
+        self,
+        messages: list[dict],
+        parse_func: callable,
+        max_tokens: int = 1024,
+    ) -> tuple[str, any]:
+        """
+        Call LLM and parse response as JSON with automatic retry on parse failure.
+
+        Args:
+            messages: List of message dicts
+            parse_func: Function to parse/validate the JSON response
+            max_tokens: Maximum tokens to generate
+
+        Returns:
+            Tuple of (raw_response, parsed_result)
+
+        Raises:
+            ValueError: If parsing fails after all retries
+        """
+        last_error = None
+
+        for attempt in range(JSON_PARSE_RETRY_POLICY.max_retries + 1):
+            response = await self.call_llm(messages, max_tokens)
+
+            try:
+                parsed = parse_func(response)
+                if parsed is not None:
+                    return response, parsed
+                # parse_func returned None, treat as parse failure
+                raise ValueError("Parser returned None")
+
+            except (json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
+                last_error = e
+                classifier = ErrorClassifier()
+                classified = classifier.classify(e)
+
+                if attempt < JSON_PARSE_RETRY_POLICY.max_retries:
+                    # Add fix prompt to messages
+                    fix_prompt = get_fix_prompt(classified)
+                    messages = [
+                        *messages,
+                        {"role": "assistant", "content": response},
+                        {"role": "user", "content": fix_prompt},
+                    ]
+                    logger.warning(
+                        f"[{self.name}] JSON parse failed, requesting fix "
+                        f"(attempt {attempt + 1}/{JSON_PARSE_RETRY_POLICY.max_retries})"
+                    )
+                    continue
+
+                logger.error(f"[{self.name}] JSON parse failed after retries: {e}")
+                raise ValueError(f"Failed to parse JSON after retries: {e}") from e
+
+        # Should not reach here, but just in case
+        raise ValueError(f"JSON parse failed: {last_error}")
 
     async def run_with_telemetry(self, state: OrchestratorState) -> OrchestratorState:
         """
