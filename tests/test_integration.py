@@ -5,7 +5,6 @@ Docker-compose based integration tests for the Coder → Executor flow.
 These tests verify the full agent pipeline works end-to-end.
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -148,7 +147,6 @@ class TestInferenceDisconnectRecovery:
 
         # Simulate connection error then success
         call_count = 0
-        original_post = agent._client.post
 
         async def mock_post(*args, **kwargs):
             nonlocal call_count
