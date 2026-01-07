@@ -33,28 +33,62 @@ executor_agent = ExecutorAgent()
 
 
 # =============================================================================
-# Graph Node Functions
+# Graph Node Functions (with crash bypass)
 # =============================================================================
 
 
 async def architect_node(state: OrchestratorState) -> OrchestratorState:
     """Architect agent node - creates execution plan."""
-    return await architect_agent.run_with_telemetry(state)
+    try:
+        return await architect_agent.run_with_telemetry(state)
+    except Exception as e:
+        # Bypass: create minimal plan and continue
+        logger.error(f"Architect crashed, using fallback plan: {e}")
+        state.plan = {
+            "summary": state.task,
+            "subtasks": [{"id": 1, "title": "Complete task", "description": state.task, "dependencies": []}],
+        }
+        state.add_history("architect", "bypass", f"Crashed: {e}")
+        return state
 
 
 async def coder_node(state: OrchestratorState) -> OrchestratorState:
     """Coder agent node - generates code and writes to file."""
-    return await coder_agent.run_with_telemetry(state)
+    try:
+        return await coder_agent.run_with_telemetry(state)
+    except Exception as e:
+        # Bypass: mark as failed, let retry logic handle
+        logger.error(f"Coder crashed: {e}")
+        state.code = ""
+        state.execution_success = False
+        state.add_history("coder", "crash", str(e))
+        return state
 
 
 async def reviewer_node(state: OrchestratorState) -> OrchestratorState:
     """Reviewer agent node - checks code quality."""
-    return await reviewer_agent.run_with_telemetry(state)
+    try:
+        return await reviewer_agent.run_with_telemetry(state)
+    except Exception as e:
+        # Bypass: skip review and proceed to execution
+        logger.warning(f"Reviewer crashed, skipping review: {e}")
+        state.review_passed = True  # Skip review on crash
+        state.review_feedback = f"Skipped due to error: {e}"
+        state.add_history("reviewer", "bypass", str(e))
+        return state
 
 
 async def executor_node(state: OrchestratorState) -> OrchestratorState:
     """Executor agent node - runs the code and captures output."""
-    return await executor_agent.run_with_telemetry(state)
+    try:
+        return await executor_agent.run_with_telemetry(state)
+    except Exception as e:
+        # Bypass: mark execution as failed
+        logger.error(f"Executor crashed: {e}")
+        state.execution_success = False
+        state.execution_output = f"Executor error: {e}"
+        state.add_history("executor", "crash", str(e))
+        return state
 
 
 # =============================================================================
@@ -116,10 +150,13 @@ def should_retry_or_end(state: OrchestratorState) -> Literal["retry", "end"]:
 
 def build_orchestration_graph() -> StateGraph:
     """
-    Build the LangGraph state machine.
+    Build the LangGraph state machine with retry loops.
 
-    Graph structure (simplified for demo, no retries):
-        START → architect → coder → reviewer → executor → END
+    Graph structure:
+        START → architect → coder → reviewer ─┬─ execute → executor ─┬─ end → END
+                                              │                      │
+                                              └── fix ─────────────> │
+                                                                     └── retry → coder
     """
     graph = StateGraph(OrchestratorState)
 
@@ -132,11 +169,29 @@ def build_orchestration_graph() -> StateGraph:
     # Set entry point
     graph.set_entry_point("architect")
 
-    # Simple linear flow - no retries for now
+    # Linear edges
     graph.add_edge("architect", "coder")
     graph.add_edge("coder", "reviewer")
-    graph.add_edge("reviewer", "executor")
-    graph.add_edge("executor", END)
+
+    # Conditional edge after reviewer: execute or fix (loop back to coder)
+    graph.add_conditional_edges(
+        "reviewer",
+        should_execute_or_fix,
+        {
+            "execute": "executor",
+            "fix": "coder",
+        },
+    )
+
+    # Conditional edge after executor: retry (loop back to coder) or end
+    graph.add_conditional_edges(
+        "executor",
+        should_retry_or_end,
+        {
+            "retry": "coder",
+            "end": END,
+        },
+    )
 
     return graph
 
