@@ -10,9 +10,20 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL=${INFERENCE_MODEL:-meta-llama/Meta-Llama-3-8B-Instruct}
+      - MODEL_NAME=${INFERENCE_MODEL:-meta-llama/Llama-3.2-3B-Instruct}
       - MAX_MODEL_LEN=${INFERENCE_MAX_MODEL_LEN:-8192}
       - GPU_MEMORY_UTILIZATION=${INFERENCE_GPU_MEMORY_UTILIZATION:-0.85}
+    command:
+      - "--model"
+      - "microsoft/phi-2"
+      - "--max-model-len"
+      - "2048"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
     volumes:
       - ./models:/models
       - huggingface-cache:/root/.cache/huggingface
@@ -27,7 +38,8 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 120s
 
   # Ollama container for CPU inference with better models
   ollama:
