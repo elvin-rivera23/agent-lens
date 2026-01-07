@@ -4,25 +4,24 @@ Tests for M4 Completion: Context, OOM Fallback, and Disconnect Handling
 These tests verify the remaining M4 production hardening features.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add orchestrator src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "services" / "orchestrator" / "src"))
 
-from state import OrchestratorState
 from inference_client import (
-    InferenceClientFactory,
+    TIERED_MODELS,
     CompletionRequest,
     CompletionResponse,
+    InferenceClientFactory,
     KVCacheStats,
-    TIERED_MODELS,
     OOMError,
-    InferenceDisconnectError,
 )
+from state import OrchestratorState
 
 
 class TestConversationMemory:
@@ -73,7 +72,6 @@ class TestConversationMemory:
         for i in range(10):
             state.add_message("user", f"Long message number {i} with content")
 
-        original_count = len(state.messages)
         state.compress_context(keep_recent=3)
 
         # Should have summary + 3 recent
@@ -226,7 +224,7 @@ class TestInferenceDisconnect:
                 factory._primary_client = mock_client
                 factory._active_client = mock_client
 
-                response = await factory.complete_with_fallback(request)
+                await factory.complete_with_fallback(request)
 
         assert factory._reconnect_attempts >= 1
 
