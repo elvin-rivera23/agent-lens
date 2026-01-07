@@ -39,9 +39,62 @@ class OrchestratorState(BaseModel):
     # History for debugging
     history: list[dict] = Field(default_factory=list, description="Agent action history")
 
+    # Conversation memory / context passing
+    messages: list[dict] = Field(
+        default_factory=list,
+        description="Conversation messages for context passing between agents"
+    )
+    context_tokens: int = Field(default=0, description="Estimated token count of context")
+    max_context_tokens: int = Field(default=4096, description="Max context tokens before compression")
+    context_compressed: bool = Field(default=False, description="Whether context was compressed")
+
     def add_history(self, agent: str, action: str, result: str) -> None:
         """Add an entry to the action history."""
         self.history.append({"agent": agent, "action": action, "result": result})
+
+    def add_message(self, role: str, content: str, agent: str | None = None) -> None:
+        """Add a message to conversation memory for context passing."""
+        message = {"role": role, "content": content}
+        if agent:
+            message["agent"] = agent
+        self.messages.append(message)
+        # Rough token estimate: ~4 chars per token
+        self.context_tokens += len(content) // 4
+
+    def get_context_messages(self, max_messages: int = 10) -> list[dict]:
+        """Get recent messages for context, with optional limit."""
+        return self.messages[-max_messages:] if len(self.messages) > max_messages else self.messages
+
+    def should_compress_context(self) -> bool:
+        """Check if context should be compressed due to token limit."""
+        return self.context_tokens > self.max_context_tokens
+
+    def compress_context(self, keep_recent: int = 5) -> None:
+        """Compress context by keeping only recent messages and summarizing old ones."""
+        if len(self.messages) <= keep_recent:
+            return
+
+        # Keep system messages and recent messages
+        old_messages = self.messages[:-keep_recent]
+        recent_messages = self.messages[-keep_recent:]
+
+        # Create a summary of old messages
+        summary_parts = []
+        for msg in old_messages:
+            agent = msg.get("agent", msg.get("role", "unknown"))
+            content = msg.get("content", "")[:100]  # Truncate long content
+            summary_parts.append(f"[{agent}]: {content}...")
+
+        summary = "\n".join(summary_parts)
+        summary_message = {
+            "role": "system",
+            "content": f"Previous conversation summary:\n{summary}",
+            "compressed": True,
+        }
+
+        self.messages = [summary_message] + recent_messages
+        self.context_tokens = sum(len(m.get("content", "")) // 4 for m in self.messages)
+        self.context_compressed = True
 
     def can_retry(self) -> bool:
         """Check if we can retry after a failure."""
