@@ -59,13 +59,22 @@ jobs:
         run: |
           pip install -e ".[dev]"
           
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
-          # Run each test file separately to avoid Prometheus registry conflicts
-          # between different services (inference vs orchestrator)
-          pytest tests/test_inference_health.py -v
-          pytest tests/test_metrics_gpu.py -v
-          pytest tests/test_orchestrator.py -v
+          pytest tests/ \
+            --cov=services/orchestrator/src \
+            --cov=services/metrics/src \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=80 \
+            -v
+            
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage.xml
 
   docker-build:
     name: Docker Build
