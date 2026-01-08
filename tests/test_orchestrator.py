@@ -155,15 +155,15 @@ class TestExecutorAgent:
 
     @pytest.mark.asyncio
     async def test_run_command_echo(self):
-        """Test running a simple echo command."""
+        """Test running a simple command."""
         from agents.executor import ExecutorAgent
 
         agent = ExecutorAgent()
-        # Echo works on both Windows and Linux
-        success, output = await agent._run_command("echo hello")
+        # Use python -c for cross-platform consistency
+        success, output = await agent._run_command('python -c "print(\'hello\')"')
 
         assert success is True
-        assert "hello" in output.lower()
+        assert "hello" in output
 
     @pytest.mark.asyncio
     async def test_run_command_invalid(self):
