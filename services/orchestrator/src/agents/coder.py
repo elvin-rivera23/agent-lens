@@ -200,7 +200,7 @@ Generate ONLY the content for {file_spec.path}. Output the complete file content
         lines = response.strip().split("\n")
         # Remove lines that look like LLM commentary
         code_lines = [line for line in lines if not line.startswith("Here") and not line.startswith("This")]
-        
+
         # Only return as code if it looks like actual code (has function def, class, or assignments)
         joined = "\n".join(code_lines)
         if code_lines and any(
