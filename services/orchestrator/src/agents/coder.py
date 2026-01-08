@@ -1,8 +1,8 @@
 """
 Coder Agent
 
-Generates Python code based on user tasks and writes it to the sandboxed workspace.
-This is one of the two core agents in the M3 Vertical Slice.
+Generates files based on Architect's plan. Iterates through planned_files,
+generating each one and emitting FILE_CREATED events.
 """
 
 import logging
@@ -22,179 +22,213 @@ WORKSPACE_DIR = Path(os.getenv("WORKSPACE_DIR", "/workspace"))
 
 class CoderAgent(BaseAgent):
     """
-    Agent that generates Python code and writes it to files.
+    Agent that generates code for each file in the Architect's plan.
 
     Responsibilities:
-    - Interpret the user's coding task
-    - Generate clean, working Python code
-    - Write the code to the sandboxed workspace
-    - Handle retry scenarios with error context
+    - Iterate through planned_files from state
+    - Generate appropriate content for each file
+    - Write files to workspace
+    - Emit FILE_CREATED events for dashboard updates
     """
 
     name = "coder"
-    system_prompt = """You are an expert Python code generator.
+    system_prompt = """You are an expert code generator. Generate the content for ONE specific file.
 
-Given a coding task, you will:
-1. Understand the requirements
-2. Write clean, working Python code
-3. Include a simple test/demo at the end that shows the code works
+Given:
+- The overall project task
+- The specific file you're generating (path and description)
+- Other files in the project (for context on imports/dependencies)
 
-CRITICAL RULES - MUST FOLLOW:
-- Output ONLY a single Python code block with ```python ... ```
-- ALL code MUST be in a SINGLE FILE - no separate files, no project structure
-- Do NOT create files, directories, or write to disk
-- Do NOT import from local modules - only use standard library and common packages (pygame, requests, flask, numpy, etc)
-- Make the code SELF-CONTAINED and immediately runnable with `python file.py`
-- Include a main block that demonstrates the code works
-- For games: use pygame and keep all code in one file
-- For APIs: use Flask/FastAPI and keep all code in one file
+Output ONLY the file content with appropriate code fences.
 
-Example output format:
+## Rules
+- Generate ONLY the content for the specified file
+- Use proper imports from other project files when needed
+- Include appropriate comments and docstrings
+- For requirements.txt: list only the packages needed
+- For config files: use proper format (JSON, YAML, etc.)
+
+## Output Format
 ```python
-# Complete self-contained code here
-def my_function():
-    pass
+# Your code here (or appropriate language for the file type)
+```
 
-if __name__ == "__main__":
-    # Demo/test the code
-    my_function()
-```"""
+For non-Python files, use the appropriate fence:
+- ```txt for requirements.txt
+- ```json for JSON files
+- ```hcl for Terraform
+- ```javascript for JS/Node"""
 
     def __init__(self):
         super().__init__()
-        # Workspace is created lazily in invoke() to avoid permission issues during import
 
     async def invoke(self, state: OrchestratorState) -> OrchestratorState:
-        """
-        Generate code for the task and write it to the workspace.
-
-        If this is a retry, include the previous error in the prompt.
-        """
-        # Build the prompt
-        messages = self._build_messages(state)
-
-        # Call LLM
-        response = await self.call_llm(messages, max_tokens=2048)
-
-        # Parse code from response
-        code = self._extract_code(response)
-
-        if not code:
-            state.add_history(self.name, "generate", "Failed to extract code from response")
-            raise ValueError("Could not extract Python code from LLM response")
-
-        # Generate filename from task
-        filename = self._generate_filename(state.task)
-        file_path = WORKSPACE_DIR / filename
-
-        # Ensure workspace exists (lazy creation)
+        """Generate all files from the Architect's plan."""
+        
+        # Ensure workspace exists
         WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
-
-        # Write code to file
-        file_path.write_text(code, encoding="utf-8")
-        logger.info(f"[{self.name}] Wrote {len(code)} chars to {file_path}")
-
-        # Emit event for Glass-Box visibility
-        await broadcaster.emit_code_written(self.name, str(file_path), len(code))
-
-        # Update state
-        state.code = code
-        state.file_path = str(file_path)
-        state.add_history(self.name, "generate", f"Wrote code to {file_path}")
-
+        
+        if not state.planned_files:
+            # Fallback to old behavior if no planned files
+            return await self._generate_single_file(state)
+        
+        # Generate each file in the plan
+        all_files_context = [f"{f.path}: {f.description}" for f in state.planned_files]
+        
+        for i, file_spec in enumerate(state.planned_files):
+            if file_spec.generated:
+                continue  # Skip already generated files
+                
+            logger.info(f"[{self.name}] Generating file {i+1}/{len(state.planned_files)}: {file_spec.path}")
+            
+            # Build prompt for this specific file
+            messages = self._build_file_prompt(state, file_spec, all_files_context)
+            
+            # Determine file path
+            file_path = WORKSPACE_DIR / file_spec.path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Generate with streaming
+            response = await self.call_llm_streaming(
+                messages,
+                max_tokens=2048,
+                file_path=str(file_path)
+            )
+            
+            # Extract content from response
+            content = self._extract_content(response, file_spec.path)
+            
+            if not content:
+                logger.warning(f"[{self.name}] Failed to extract content for {file_spec.path}")
+                content = f"# TODO: Generate content for {file_spec.path}\n"
+            
+            # Write file
+            file_path.write_text(content, encoding="utf-8")
+            
+            # Update file spec
+            file_spec.content = content
+            file_spec.generated = True
+            
+            # Add to workspace files
+            state.add_file(str(file_path), content)
+            
+            # Emit event for dashboard
+            await broadcaster.emit_file_created(self.name, file_spec.path, content)
+            
+            logger.info(f"[{self.name}] Wrote {len(content)} chars to {file_path}")
+        
+        # Update state with last file for compatibility
+        if state.planned_files:
+            last_file = state.planned_files[-1]
+            state.code = last_file.content
+            state.file_path = str(WORKSPACE_DIR / last_file.path)
+        
+        state.add_history(
+            self.name,
+            "generate",
+            f"Generated {len(state.planned_files)} files"
+        )
+        
         return state
 
-    def _build_messages(self, state: OrchestratorState) -> list[dict]:
-        """Build the message list for the LLM call."""
-        messages = []
+    def _build_file_prompt(
+        self, 
+        state: OrchestratorState, 
+        file_spec, 
+        all_files: list[str]
+    ) -> list[dict]:
+        """Build prompt for generating a specific file."""
+        
+        other_files = "\n".join(f"- {f}" for f in all_files if f != f"{file_spec.path}: {file_spec.description}")
+        
+        # Include already generated file contents for imports
+        existing_content = ""
+        for f in state.planned_files:
+            if f.generated and f.path != file_spec.path:
+                existing_content += f"\n\n### {f.path}\n```\n{f.content[:500]}...\n```"
+        
+        prompt = f"""Generate the content for this file:
 
-        # Use subtask description if available from Architect, else use original task
-        task_description = state.get_current_subtask_description()
+**Project Task:** {state.task}
 
-        task_prompt = f"Write Python code for the following task:\n\n{task_description}"
+**File to Generate:** {file_spec.path}
+**Description:** {file_spec.description}
 
-        # Include review feedback if this is a review fix
-        if state.review_attempts > 0 and state.review_feedback and not state.review_passed:
-            task_prompt += f"""
+**Other Project Files:**
+{other_files}
+{existing_content if existing_content else ""}
 
-IMPORTANT: The previous code was rejected by the reviewer:
-```
-{state.review_feedback}
-```
+Generate ONLY the content for {file_spec.path}. Output the complete file content in a code block."""
 
-Please fix the code to address these issues."""
+        return [{"role": "user", "content": prompt}]
 
-        # Include execution error if this is a runtime retry
-        elif state.error_count > 0 and state.execution_output:
-            task_prompt += f"""
-
-IMPORTANT: The previous code attempt failed with this error:
-```
-{state.execution_output[:1000]}
-```
-
-Please fix the code to address this error."""
-
-        messages.append({"role": "user", "content": task_prompt})
-
-        return messages
-
-    def _extract_code(self, response: str) -> str | None:
-        """
-        Extract Python code from LLM response.
-
-        Looks for ```python ... ``` code blocks.
-        """
-        # Try to find python code block
-        pattern = r"```python\s*(.*?)```"
+    def _extract_content(self, response: str, file_path: str) -> str | None:
+        """Extract file content from LLM response."""
+        
+        # Determine expected language from file extension
+        ext = Path(file_path).suffix.lower()
+        lang_map = {
+            ".py": ["python", "py"],
+            ".txt": ["txt", "text", ""],
+            ".json": ["json"],
+            ".tf": ["hcl", "terraform"],
+            ".js": ["javascript", "js"],
+            ".ts": ["typescript", "ts"],
+            ".html": ["html"],
+            ".css": ["css"],
+            ".yaml": ["yaml", "yml"],
+            ".yml": ["yaml", "yml"],
+            ".md": ["markdown", "md"],
+        }
+        
+        expected_langs = lang_map.get(ext, [""])
+        
+        # Try to find code block with expected language
+        for lang in expected_langs:
+            pattern = rf"```{lang}\s*(.*?)```"
+            matches = re.findall(pattern, response, re.DOTALL | re.IGNORECASE)
+            if matches:
+                return matches[0].strip()
+        
+        # Fallback: any code block
+        pattern = r"```\w*\s*(.*?)```"
         matches = re.findall(pattern, response, re.DOTALL)
-
         if matches:
             return matches[0].strip()
-
-        # Fallback: try generic code block
-        pattern = r"```\s*(.*?)```"
-        matches = re.findall(pattern, response, re.DOTALL)
-
-        if matches:
-            return matches[0].strip()
-
-        # Last resort: if no code blocks, check if entire response looks like code
-        if "def " in response or "import " in response:
-            return response.strip()
-
+        
+        # Last resort: if no code blocks, return cleaned response
+        lines = response.strip().split("\n")
+        # Remove lines that look like LLM commentary
+        code_lines = [l for l in lines if not l.startswith("Here") and not l.startswith("This")]
+        if code_lines:
+            return "\n".join(code_lines)
+        
         return None
 
+    async def _generate_single_file(self, state: OrchestratorState) -> OrchestratorState:
+        """Fallback: generate single file (old behavior)."""
+        messages = [{"role": "user", "content": f"Write code for: {state.task}"}]
+        
+        filename = self._generate_filename(state.task)
+        file_path = WORKSPACE_DIR / filename
+        
+        response = await self.call_llm_streaming(messages, max_tokens=2048, file_path=str(file_path))
+        code = self._extract_content(response, filename) or ""
+        
+        file_path.write_text(code, encoding="utf-8")
+        await broadcaster.emit_code_written(self.name, str(file_path), code)
+        
+        state.code = code
+        state.file_path = str(file_path)
+        state.add_file(str(file_path), code)
+        
+        return state
+
     def _generate_filename(self, task: str) -> str:
-        """Generate a filename from the task description."""
-        # Extract key words from task
+        """Generate filename from task (fallback)."""
         words = task.lower().split()
-
-        # Filter to meaningful words
-        stop_words = {
-            "a",
-            "an",
-            "the",
-            "write",
-            "create",
-            "make",
-            "build",
-            "python",
-            "code",
-            "function",
-            "that",
-            "which",
-            "to",
-            "for",
-            "with",
-        }
-        meaningful = [w for w in words if w.isalnum() and w not in stop_words]
-
-        # Take first 3 meaningful words
-        name_parts = meaningful[:3] if meaningful else ["generated"]
-        name = "_".join(name_parts)
-
-        # Clean up and add extension
+        stop_words = {"a", "an", "the", "write", "create", "make", "build", "python", "code"}
+        meaningful = [w for w in words if w.isalnum() and w not in stop_words][:3]
+        name = "_".join(meaningful) if meaningful else "generated"
         name = re.sub(r"[^a-z0-9_]", "", name)
-
         return f"{name}.py"

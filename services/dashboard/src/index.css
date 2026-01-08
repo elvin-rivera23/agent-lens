@@ -1,33 +1,67 @@
 /* =============================================================================
-   AgentLens Dashboard - Cyberpunk Design System
+   AgentLens Dashboard - Cyberpunk Design System v2.0
+   Premium Glassmorphism + HUD Frame Aesthetic
    ============================================================================= */
 
-/* CSS Variables */
+/* CSS Variables - Enhanced Palette */
 :root {
-  /* Colors */
+  /* Background Depths */
+  --color-bg-void: #050508;
   --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #12121a;
-  --color-bg-tertiary: #1a1a25;
-  --color-bg-card: rgba(18, 18, 26, 0.8);
+  --color-bg-secondary: #0f1118;
+  --color-bg-tertiary: #161822;
+  --color-bg-elevated: #1c1e2a;
   
-  /* Neon Accents */
+  /* Glass Effects */
+  --glass-bg: rgba(12, 14, 22, 0.75);
+  --glass-bg-light: rgba(20, 24, 36, 0.6);
+  --glass-border: rgba(0, 240, 255, 0.12);
+  --glass-border-hover: rgba(0, 240, 255, 0.25);
+  --glass-highlight: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  
+  /* Cyan Spectrum */
+  --color-cyan-dim: #0a5a6a;
   --color-cyan: #00f0ff;
+  --color-cyan-bright: #4df8ff;
+  --color-cyan-glow: rgba(0, 240, 255, 0.6);
+  
+  /* Magenta Spectrum */
+  --color-magenta-dim: #6a0a4a;
   --color-magenta: #ff00aa;
+  --color-magenta-bright: #ff4dc4;
+  --color-magenta-glow: rgba(255, 0, 170, 0.5);
+  
+  /* Orange Spectrum */
+  --color-orange-dim: #6a3500;
   --color-orange: #ff6b00;
+  --color-orange-bright: #ff9540;
+  --color-orange-glow: rgba(255, 107, 0, 0.5);
+  
+  /* Green Spectrum */
+  --color-green-dim: #0a5a3a;
   --color-green: #00ff88;
+  --color-green-bright: #4dffaa;
+  --color-green-glow: rgba(0, 255, 136, 0.5);
+  
+  /* Status Colors */
   --color-red: #ff3366;
+  --color-red-glow: rgba(255, 51, 102, 0.5);
   --color-yellow: #ffcc00;
+  --color-yellow-glow: rgba(255, 204, 0, 0.4);
   
-  /* Text */
-  --color-text-primary: #e0e0e0;
-  --color-text-secondary: #888;
-  --color-text-muted: #555;
+  /* Text Hierarchy */
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #9aa0a6;
+  --color-text-muted: #5f6368;
+  --color-text-dim: #3c4043;
   
-  /* Glow Effects */
-  --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.5);
-  --glow-magenta: 0 0 20px rgba(255, 0, 170, 0.5);
-  --glow-orange: 0 0 20px rgba(255, 107, 0, 0.5);
-  --glow-green: 0 0 20px rgba(0, 255, 136, 0.5);
+  /* Glow Effects - Layered */
+  --glow-cyan-subtle: 0 0 10px rgba(0, 240, 255, 0.2);
+  --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.4), 0 0 40px rgba(0, 240, 255, 0.2);
+  --glow-cyan-intense: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.4), 0 0 60px rgba(0, 240, 255, 0.2);
+  --glow-magenta: 0 0 20px rgba(255, 0, 170, 0.4), 0 0 40px rgba(255, 0, 170, 0.2);
+  --glow-orange: 0 0 20px rgba(255, 107, 0, 0.4), 0 0 40px rgba(255, 107, 0, 0.2);
+  --glow-green: 0 0 20px rgba(0, 255, 136, 0.4), 0 0 40px rgba(0, 255, 136, 0.2);
   
   /* Typography */
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -39,18 +73,27 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
+  --space-2xl: 48px;
   
   /* Border Radius */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 16px;
   
   /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 300ms ease;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* HUD Frame Characters */
+  --hud-corner-size: 12px;
 }
 
-/* Reset & Base */
+/* =============================================================================
+   Reset & Base
+   ============================================================================= */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -59,31 +102,167 @@
 
 html, body, #root {
   height: 100%;
-  background: var(--color-bg-primary);
+  background: var(--color-bg-void);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar Styling */
+/* =============================================================================
+   Custom Scrollbar
+   ============================================================================= */
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--color-bg-secondary);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-cyan);
-  border-radius: 4px;
+  background: linear-gradient(180deg, var(--color-cyan-dim), var(--color-magenta-dim));
+  border-radius: 3px;
+  transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-magenta);
+  background: linear-gradient(180deg, var(--color-cyan), var(--color-magenta));
+}
+
+/* =============================================================================
+   Glassmorphism Card
+   ============================================================================= */
+
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+/* Glass highlight overlay */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
+  opacity: 0.6;
+}
+
+.card:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glow-cyan-subtle);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--color-cyan);
+  position: relative;
+  padding-bottom: var(--space-sm);
+}
+
+.card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-cyan-dim), transparent 80%);
+}
+
+/* =============================================================================
+   HUD Frame Utility
+   ============================================================================= */
+
+.hud-frame {
+  position: relative;
+}
+
+.hud-frame::before,
+.hud-frame::after {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-cyan);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.hud-frame::before {
+  content: '⌜';
+  top: -2px;
+  left: -2px;
+}
+
+.hud-frame::after {
+  content: '⌟';
+  bottom: -2px;
+  right: -2px;
+}
+
+.hud-frame:hover::before,
+.hud-frame:hover::after {
+  opacity: 1;
+  color: var(--color-cyan-bright);
+}
+
+/* Full corner variant */
+.hud-frame-full {
+  position: relative;
+}
+
+.hud-frame-full::before {
+  content: '⌜                                    ⌝';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--color-cyan);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.hud-frame-full::after {
+  content: '⌞                                    ⌟';
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  right: -4px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--color-cyan);
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* =============================================================================
@@ -91,47 +270,88 @@ html, body, #root {
    ============================================================================= */
 
 @keyframes glitch {
-  0% { transform: translate(0); }
-  20% { transform: translate(-2px, 2px); }
-  40% { transform: translate(-2px, -2px); }
-  60% { transform: translate(2px, 2px); }
-  80% { transform: translate(2px, -2px); }
-  100% { transform: translate(0); }
-}
-
-@keyframes glitch-skew {
-  0% { transform: skew(0deg); }
-  20% { transform: skew(-1deg); }
-  40% { transform: skew(1deg); }
-  60% { transform: skew(-0.5deg); }
-  80% { transform: skew(0.5deg); }
-  100% { transform: skew(0deg); }
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(1px, 1px); }
+  80% { transform: translate(1px, -1px); }
 }
 
 @keyframes glitch-color {
-  0% { text-shadow: 2px 0 var(--color-cyan), -2px 0 var(--color-magenta); }
-  25% { text-shadow: -2px 0 var(--color-cyan), 2px 0 var(--color-magenta); }
-  50% { text-shadow: 2px 2px var(--color-cyan), -2px -2px var(--color-magenta); }
-  75% { text-shadow: -2px 2px var(--color-cyan), 2px -2px var(--color-magenta); }
-  100% { text-shadow: 2px 0 var(--color-cyan), -2px 0 var(--color-magenta); }
+  0%, 100% { 
+    text-shadow: 1px 0 var(--color-cyan), -1px 0 var(--color-magenta); 
+  }
+  25% { 
+    text-shadow: -1px 0 var(--color-cyan), 1px 0 var(--color-magenta); 
+  }
+  50% { 
+    text-shadow: 1px 1px var(--color-cyan), -1px -1px var(--color-magenta); 
+  }
+  75% { 
+    text-shadow: -1px 1px var(--color-cyan), 1px -1px var(--color-magenta); 
+  }
 }
 
 .glitch-text {
   position: relative;
-  animation: glitch-color 3s infinite linear;
+  animation: glitch-color 4s infinite linear;
 }
 
 .glitch-text:hover {
-  animation: glitch 0.3s infinite, glitch-color 0.5s infinite;
+  animation: glitch 0.2s infinite, glitch-color 0.3s infinite;
 }
 
 /* =============================================================================
-   Scanline Effect
+   Holographic Effect
    ============================================================================= */
 
-@keyframes scanline {
-  0% { top: 0; }
-  100% { top: 100%; }
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.holographic {
+  background: linear-gradient(
+    135deg,
+    var(--color-cyan) 0%,
+    var(--color-magenta) 25%,
+    var(--color-cyan-bright) 50%,
+    var(--color-magenta-bright) 75%,
+    var(--color-cyan) 100%
+  );
+  background-size: 300% 300%;
+  animation: holographic 6s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =============================================================================
+   Neon Pulse Animation
+   ============================================================================= */
+
+@keyframes neon-pulse {
+  0%, 100% { 
+    opacity: 1; 
+    filter: brightness(1);
+  }
+  50% { 
+    opacity: 0.85; 
+    filter: brightness(1.2);
+  }
+}
+
+.neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* =============================================================================
+   Scanline Overlay
+   ============================================================================= */
+
+.scanlines {
+  position: relative;
 }
 
 .scanlines::after {
@@ -141,86 +361,116 @@ html, body, #root {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    transparent 50%,
-    rgba(0, 0, 0, 0.1) 50%
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
   );
-  background-size: 100% 4px;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.4;
 }
 
 /* =============================================================================
-   Neon Glow Effects
+   Data Stream Animation
    ============================================================================= */
 
-.glow-cyan {
-  box-shadow: var(--glow-cyan);
-  border: 1px solid var(--color-cyan);
+@keyframes data-stream {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
 }
 
-.glow-magenta {
-  box-shadow: var(--glow-magenta);
-  border: 1px solid var(--color-magenta);
-}
-
-.glow-orange {
-  box-shadow: var(--glow-orange);
-  border: 1px solid var(--color-orange);
-}
-
-.glow-green {
-  box-shadow: var(--glow-green);
-  border: 1px solid var(--color-green);
-}
-
-/* =============================================================================
-   Pulse Animation
-   ============================================================================= */
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: var(--glow-cyan); }
-  50% { opacity: 0.7; box-shadow: 0 0 40px rgba(0, 240, 255, 0.8); }
-}
-
-.pulse {
-  animation: pulse-glow 2s infinite ease-in-out;
-}
-
-/* =============================================================================
-   Card Component
-   ============================================================================= */
-
-.card {
-  background: var(--color-bg-card);
-  border: 1px solid rgba(0, 240, 255, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  backdrop-filter: blur(10px);
+.data-stream-bg {
   position: relative;
   overflow: hidden;
 }
 
-.card::before {
+.data-stream-bg::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--color-cyan), var(--color-magenta));
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 240, 255, 0.03) 50%,
+    transparent 100%
+  );
+  animation: data-stream 3s linear infinite;
+  pointer-events: none;
 }
 
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  font-family: var(--font-display);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+/* =============================================================================
+   Matrix Rain Background
+   ============================================================================= */
+
+@keyframes matrix-fall {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.matrix-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.matrix-bg::before {
+  content: '01001010 11010110 00101101';
+  position: absolute;
+  top: -50px;
+  left: 10%;
+  font-family: var(--font-mono);
+  font-size: 10px;
   color: var(--color-cyan);
+  opacity: 0.05;
+  writing-mode: vertical-rl;
+  animation: matrix-fall 10s linear infinite;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   Flicker Effect
+   ============================================================================= */
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.7; }
+  94% { opacity: 1; }
+  95% { opacity: 0.5; }
+  96% { opacity: 1; }
+}
+
+.flicker {
+  animation: flicker 5s infinite;
+}
+
+/* =============================================================================
+   Pulse Ring Animation
+   ============================================================================= */
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pulse {
+  animation: pulse-ring 2s ease-in-out infinite;
 }
 
 /* =============================================================================
@@ -232,12 +482,27 @@ html, body, #root {
   height: 8px;
   border-radius: 50%;
   display: inline-block;
+  position: relative;
+}
+
+.status-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .status-dot.active {
   background: var(--color-green);
-  box-shadow: 0 0 10px var(--color-green);
-  animation: pulse-glow 1s infinite;
+  box-shadow: 0 0 8px var(--color-green-glow);
+}
+
+.status-dot.active::after {
+  background: var(--color-green);
+  opacity: 0.3;
+  animation: pulse-ring 1.5s ease-in-out infinite;
 }
 
 .status-dot.idle {
@@ -246,7 +511,31 @@ html, body, #root {
 
 .status-dot.error {
   background: var(--color-red);
-  box-shadow: 0 0 10px var(--color-red);
+  box-shadow: 0 0 8px var(--color-red-glow);
+}
+
+/* =============================================================================
+   Glow Utilities
+   ============================================================================= */
+
+.glow-cyan {
+  box-shadow: var(--glow-cyan);
+  border-color: var(--color-cyan) !important;
+}
+
+.glow-magenta {
+  box-shadow: var(--glow-magenta);
+  border-color: var(--color-magenta) !important;
+}
+
+.glow-orange {
+  box-shadow: var(--glow-orange);
+  border-color: var(--color-orange) !important;
+}
+
+.glow-green {
+  box-shadow: var(--glow-green);
+  border-color: var(--color-green) !important;
 }
 
 /* =============================================================================
@@ -256,12 +545,15 @@ html, body, #root {
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 h1 {
-  font-size: 24px;
-  color: var(--color-cyan);
+  font-size: 28px;
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 h2 {
@@ -277,44 +569,93 @@ h3 {
 code {
   font-family: var(--font-mono);
   background: var(--color-bg-tertiary);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 13px;
+  border: 1px solid var(--glass-border);
 }
 
 /* =============================================================================
-   Flicker Animation
+   Ripple Effect
    ============================================================================= */
 
-@keyframes flicker {
-  0%, 100% { opacity: 1; }
-  92% { opacity: 1; }
-  93% { opacity: 0.8; }
-  94% { opacity: 1; }
-  95% { opacity: 0.6; }
-  96% { opacity: 1; }
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
 }
 
-.flicker {
-  animation: flicker 4s infinite;
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--color-cyan-glow) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple:active::after {
+  animation: ripple 0.6s ease-out;
 }
 
 /* =============================================================================
-   Data Stream Animation
+   Gradient Border Utility
    ============================================================================= */
 
-@keyframes data-stream {
-  0% { background-position: 0% 0%; }
-  100% { background-position: 0% 100%; }
+.gradient-border {
+  position: relative;
+  background: var(--glass-bg);
+  border-radius: var(--radius-lg);
 }
 
-.data-stream {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 240, 255, 0.1) 50%,
-    transparent 100%
-  );
-  background-size: 100% 200%;
-  animation: data-stream 2s infinite linear;
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta));
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   Text Utilities
+   ============================================================================= */
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-cyan {
+  color: var(--color-cyan);
+}
+
+.text-magenta {
+  color: var(--color-magenta);
+}
+
+.text-orange {
+  color: var(--color-orange);
+}
+
+.text-green {
+  color: var(--color-green);
 }

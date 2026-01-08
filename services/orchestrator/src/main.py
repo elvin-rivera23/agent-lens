@@ -1,21 +1,20 @@
-"""
-AgentLens Orchestrator Service
-
-FastAPI application for multi-agent code generation and execution.
-"""
-
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from events import broadcaster
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from graph import cleanup, run_orchestration
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 from state import OrchestratorState
 from telemetry import ORCHESTRATION_REQUESTS
+
+# Workspace directory for generated files
+WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "/workspace")
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +46,8 @@ class OrchestrationResponse(BaseModel):
     execution_output: str
     retries: int
     history: list[dict]
+    files: dict[str, str] = {}  # Map of file paths to content
+    preview_url: str | None = None  # URL for iframe preview
 
 
 # =============================================================================
@@ -58,6 +59,8 @@ class OrchestrationResponse(BaseModel):
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     logger.info("Starting AgentLens Orchestrator...")
+    # Ensure workspace directory exists
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
     yield
     logger.info("Shutting down AgentLens Orchestrator...")
     await cleanup()
@@ -82,6 +85,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount workspace as static files for preview (must be after CORS)
+# This allows the dashboard iframe to load generated HTML/CSS/JS
+if os.path.exists(WORKSPACE_DIR):
+    app.mount("/preview", StaticFiles(directory=WORKSPACE_DIR, html=True), name="preview")
 
 
 # =============================================================================
@@ -121,6 +129,9 @@ async def orchestrate(request: OrchestrationRequest):
     ORCHESTRATION_REQUESTS.inc()
 
     try:
+        # Emit workspace reset event before starting
+        await broadcaster.emit_workspace_reset()
+
         # Create initial state with custom max_retries if provided
         final_state: OrchestratorState = await run_orchestration(request.task)
 
@@ -132,6 +143,7 @@ async def orchestrate(request: OrchestrationRequest):
             execution_output=final_state.execution_output,
             retries=final_state.error_count,
             history=final_state.history,
+            files=final_state.workspace_files,
         )
 
     except Exception as e:
@@ -144,6 +156,7 @@ async def orchestrate(request: OrchestrationRequest):
             execution_output=f"Orchestration error: {e}",
             retries=0,
             history=[],
+            files={},
         )
 
 

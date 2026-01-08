@@ -1,11 +1,42 @@
+/* =============================================================================
+   Agent Timeline - Cyberpunk Pipeline
+   ============================================================================= */
+
 .agent-timeline {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    position: relative;
+}
+
+/* HUD corner decorations */
+.agent-timeline::before {
+    content: '⌜';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    font-size: 16px;
+    color: var(--color-cyan);
+    opacity: 0.5;
+}
+
+.agent-timeline::after {
+    content: '⌟';
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    font-size: 16px;
+    color: var(--color-cyan);
+    opacity: 0.5;
 }
 
 .timeline-container {
     display: flex;
     flex-direction: column;
     gap: 0;
+    padding: var(--space-sm) 0;
 }
 
 .timeline-row {
@@ -14,20 +45,25 @@
     align-items: center;
 }
 
+/* =============================================================================
+   Agent Node
+   ============================================================================= */
+
 .agent-node {
     display: flex;
     align-items: center;
     gap: var(--space-md);
     padding: var(--space-md);
-    background: var(--color-bg-tertiary);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-lg);
     width: 100%;
-    transition: var(--transition-normal);
+    transition: all var(--transition-normal);
     position: relative;
     overflow: hidden;
 }
 
+/* Left accent bar */
 .agent-node::before {
     content: '';
     position: absolute;
@@ -36,41 +72,78 @@
     bottom: 0;
     width: 3px;
     background: var(--agent-color);
-    opacity: 0.3;
-    transition: var(--transition-normal);
+    opacity: 0.4;
+    transition: all var(--transition-normal);
 }
 
+/* Glow overlay */
+.agent-node::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 60%, color-mix(in srgb, var(--agent-color) 10%, transparent));
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    pointer-events: none;
+}
+
+.agent-node:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.agent-node:hover::after {
+    opacity: 1;
+}
+
+/* Active State */
 .agent-node.active {
     border-color: var(--agent-color);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--agent-color) 30%, transparent);
-    animation: agent-pulse 2s infinite;
+    box-shadow:
+        0 0 20px color-mix(in srgb, var(--agent-color) 30%, transparent),
+        inset 0 0 30px color-mix(in srgb, var(--agent-color) 5%, transparent);
+    animation: node-pulse 2s ease-in-out infinite;
 }
 
 .agent-node.active::before {
     opacity: 1;
-    box-shadow: 0 0 10px var(--agent-color);
+    width: 4px;
+    box-shadow: 0 0 15px var(--agent-color);
 }
 
-@keyframes agent-pulse {
+.agent-node.active::after {
+    opacity: 1;
+}
+
+@keyframes node-pulse {
 
     0%,
     100% {
         transform: scale(1);
+        box-shadow: 0 0 20px color-mix(in srgb, var(--agent-color) 30%, transparent);
     }
 
     50% {
         transform: scale(1.01);
+        box-shadow: 0 0 30px color-mix(in srgb, var(--agent-color) 50%, transparent);
     }
 }
 
+/* Complete State */
 .agent-node.complete {
-    border-color: var(--color-green);
-    opacity: 0.7;
+    border-color: var(--color-green-dim);
+    opacity: 0.8;
 }
 
+.agent-node.complete::before {
+    background: var(--color-green);
+    opacity: 0.6;
+}
+
+/* Error State */
 .agent-node.error {
     border-color: var(--color-red);
-    animation: shake 0.3s ease-in-out;
+    animation: shake 0.4s ease-in-out;
 }
 
 @keyframes shake {
@@ -80,102 +153,192 @@
         transform: translateX(0);
     }
 
-    25% {
-        transform: translateX(-5px);
+    20% {
+        transform: translateX(-4px);
     }
 
-    75% {
-        transform: translateX(5px);
+    40% {
+        transform: translateX(4px);
+    }
+
+    60% {
+        transform: translateX(-4px);
+    }
+
+    80% {
+        transform: translateX(4px);
     }
 }
 
+/* =============================================================================
+   Agent Icon
+   ============================================================================= */
+
 .agent-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, var(--agent-color) 20%, transparent);
+    background: linear-gradient(135deg,
+            color-mix(in srgb, var(--agent-color) 15%, transparent),
+            color-mix(in srgb, var(--agent-color) 5%, transparent));
+    border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
     border-radius: var(--radius-md);
     color: var(--agent-color);
+    transition: all var(--transition-normal);
 }
+
+.agent-node.active .agent-icon {
+    box-shadow:
+        0 0 15px color-mix(in srgb, var(--agent-color) 40%, transparent),
+        inset 0 0 10px color-mix(in srgb, var(--agent-color) 20%, transparent);
+}
+
+.agent-node.active .agent-icon svg {
+    filter: drop-shadow(0 0 4px var(--agent-color));
+}
+
+/* =============================================================================
+   Agent Info
+   ============================================================================= */
 
 .agent-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .agent-name {
     font-family: var(--font-display);
     font-size: 12px;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     color: var(--color-text-primary);
+    font-weight: 500;
 }
 
 .agent-status-text {
     font-size: 10px;
     color: var(--color-text-muted);
     letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 .agent-node.active .agent-status-text {
     color: var(--agent-color);
+    text-shadow: 0 0 10px var(--agent-color);
 }
 
+/* =============================================================================
+   Status Indicator
+   ============================================================================= */
+
 .status-indicator {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .pulse-ring {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: var(--agent-color);
-    animation: pulse-ring-anim 1.5s infinite;
+    position: relative;
+    box-shadow: 0 0 10px var(--agent-color);
 }
 
-@keyframes pulse-ring-anim {
+.pulse-ring::before,
+.pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--agent-color);
+    animation: ripple-out 1.5s ease-out infinite;
+}
+
+.pulse-ring::after {
+    animation-delay: 0.5s;
+}
+
+@keyframes ripple-out {
     0% {
         transform: scale(1);
-        opacity: 1;
-        box-shadow: 0 0 0 0 var(--agent-color);
-    }
-
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-        box-shadow: 0 0 10px 5px transparent;
+        opacity: 0.6;
     }
 
     100% {
-        transform: scale(1);
-        opacity: 1;
-        box-shadow: 0 0 0 0 var(--agent-color);
+        transform: scale(2.5);
+        opacity: 0;
     }
 }
+
+/* =============================================================================
+   Timeline Connector
+   ============================================================================= */
 
 .timeline-connector {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: var(--space-xs) 0;
+    position: relative;
 }
 
 .connector-line {
     width: 2px;
-    height: 16px;
-    background: linear-gradient(180deg, var(--color-cyan), var(--color-magenta));
-    opacity: 0.3;
+    height: 20px;
+    background: linear-gradient(180deg,
+            var(--color-cyan-dim),
+            var(--color-magenta-dim));
+    opacity: 0.5;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated data flow */
+.connector-line::before {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, transparent, var(--color-cyan), transparent);
+    animation: data-flow 2s linear infinite;
+}
+
+@keyframes data-flow {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(400%);
+    }
 }
 
 .connector-arrow {
-    color: var(--color-text-muted);
-    font-size: 8px;
+    color: var(--color-cyan-dim);
+    font-size: 10px;
     opacity: 0.5;
+    animation: arrow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes arrow-pulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: translateY(0);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: translateY(2px);
+    }
 }

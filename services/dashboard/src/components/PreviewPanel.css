@@ -1,0 +1,117 @@
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preview-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.preview-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preview-tab:hover {
+    background: rgba(var(--cyan-rgb), 0.1);
+    color: var(--color-cyan);
+}
+
+.preview-tab.active {
+    background: rgba(var(--cyan-rgb), 0.2);
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+}
+
+.preview-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.preview-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.preview-action:hover {
+    background: rgba(var(--cyan-rgb), 0.1);
+    color: var(--color-cyan);
+    border-color: var(--color-cyan);
+}
+
+.preview-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+}
+
+.terminal-output {
+    height: 100%;
+    padding: 0.75rem;
+    overflow: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+}
+
+.terminal-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--color-green);
+    line-height: 1.5;
+}
+
+.terminal-empty {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+}
+
+.terminal-empty svg {
+    opacity: 0.5;
+}

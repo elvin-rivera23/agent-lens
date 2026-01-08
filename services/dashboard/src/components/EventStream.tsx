@@ -53,12 +53,23 @@ export function EventStream({ events, onClear }: EventStreamProps) {
             </div>
 
             <div className="event-list scanlines">
-                {events.length === 0 ? (
-                    <div className="empty-state">
-                        <span className="glitch-text">AWAITING EVENTS...</span>
-                    </div>
-                ) : (
-                    events.map((event, idx) => (
+                {(() => {
+                    // Filter out noisy events
+                    const filteredEvents = events.filter(e =>
+                        !['token', 'file_created', 'workspace_reset'].includes(e.type)
+                    ).slice(-20);
+
+                    console.log('[EventStream] Total events:', events.length, 'Filtered:', filteredEvents.length, 'Types:', [...new Set(events.map(e => e.type))]);
+
+                    if (filteredEvents.length === 0) {
+                        return (
+                            <div className="empty-state">
+                                <span className="glitch-text">AWAITING EVENTS...</span>
+                            </div>
+                        );
+                    }
+
+                    return filteredEvents.map((event, idx) => (
                         <div
                             key={`${event.timestamp}-${idx}`}
                             className="event-item data-stream"
@@ -76,7 +87,7 @@ export function EventStream({ events, onClear }: EventStreamProps) {
                             )}
                         </div>
                     ))
-                )}
+                })()}
             </div>
         </div>
     );

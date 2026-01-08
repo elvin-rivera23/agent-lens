@@ -1,0 +1,131 @@
+.code-tabs {
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.code-tabs.empty {
+    padding: 1rem;
+    text-align: center;
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* Tab Header */
+.tabs-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.expand-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    color: var(--color-cyan);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.tabs-scroll {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    flex: 1;
+    scrollbar-width: none;
+}
+
+.tabs-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.file-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.file-tab:hover {
+    background: rgba(var(--cyan-rgb), 0.1);
+    color: var(--color-cyan);
+}
+
+.file-tab.active {
+    background: rgba(var(--cyan-rgb), 0.2);
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+}
+
+.file-meta {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Collapsed State */
+.code-tabs.collapsed .code-preview {
+    display: none;
+}
+
+/* Expanded Code Preview */
+.code-preview {
+    max-height: 300px;
+    overflow: auto;
+}
+
+.code-content {
+    margin: 0;
+    padding: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: 1.4;
+}
+
+.code-line {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.code-line .line-num {
+    color: var(--text-muted);
+    user-select: none;
+    min-width: 2ch;
+    text-align: right;
+}
+
+.code-line .line-text {
+    color: var(--text-primary);
+    white-space: pre;
+}
+
+.code-line.truncated {
+    color: var(--text-muted);
+    font-style: italic;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--glass-border);
+    margin-top: 0.5rem;
+}
