@@ -154,25 +154,33 @@ class TestExecutorAgent:
         assert agent.name == "executor"
 
     @pytest.mark.asyncio
-    async def test_run_command_echo(self):
+    async def test_run_command_echo(self, tmp_path):
         """Test running a simple command."""
+        from unittest.mock import patch
+        from pathlib import Path
+
         from agents.executor import ExecutorAgent
 
         agent = ExecutorAgent()
-        # Use python -c for cross-platform consistency
-        success, output = await agent._run_command('python -c "print(\'hello\')"')
+        # Patch WORKSPACE_DIR to use tmp_path (exists in CI)
+        with patch("agents.executor.WORKSPACE_DIR", Path(tmp_path)):
+            success, output = await agent._run_command('python -c "print(\'hello\')"')
 
         assert success is True
         assert "hello" in output
 
     @pytest.mark.asyncio
-    async def test_run_command_invalid(self):
+    async def test_run_command_invalid(self, tmp_path):
         """Test running an invalid command."""
+        from unittest.mock import patch
+        from pathlib import Path
+
         from agents.executor import ExecutorAgent
 
         agent = ExecutorAgent()
-        # This command doesn't exist on any platform
-        success, output = await agent._run_command("this_command_does_not_exist_12345")
+        # Patch WORKSPACE_DIR to use tmp_path
+        with patch("agents.executor.WORKSPACE_DIR", Path(tmp_path)):
+            success, output = await agent._run_command("this_command_does_not_exist_12345")
 
         assert success is False
 
