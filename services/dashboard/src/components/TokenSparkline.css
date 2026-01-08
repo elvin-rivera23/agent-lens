@@ -1,0 +1,46 @@
+/* =============================================================================
+   Token Sparkline - Mini TPS chart
+   ============================================================================= */
+
+.token-sparkline {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--space-sm);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.sparkline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sparkline-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.sparkline-value {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-green);
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+}
+
+.sparkline-chart {
+    height: 32px;
+    width: 100%;
+    opacity: 0.9;
+}
+
+/* Override recharts line glow */
+.sparkline-chart .recharts-line-curve {
+    filter: drop-shadow(0 0 4px rgba(0, 255, 136, 0.5));
+}

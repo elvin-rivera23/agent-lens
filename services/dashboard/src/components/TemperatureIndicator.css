@@ -1,0 +1,72 @@
+/* =============================================================================
+   Temperature Indicator - Color-coded GPU temp
+   ============================================================================= */
+
+.temperature-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    --temp-color: var(--color-cyan);
+}
+
+/* Temperature levels */
+.temp-cool {
+    --temp-color: var(--color-cyan);
+}
+
+.temp-warm {
+    --temp-color: var(--color-orange);
+}
+
+.temp-hot {
+    --temp-color: #ff4444;
+}
+
+.temp-icon {
+    font-size: 16px;
+    filter: grayscale(0.3);
+}
+
+.temp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.temp-label {
+    font-family: var(--font-display);
+    font-size: 9px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.temp-value {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--temp-color);
+    text-shadow: 0 0 8px var(--temp-color);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Pulse animation for hot temps */
+.temp-hot .temp-value {
+    animation: temp-pulse 1s ease-in-out infinite;
+}
+
+@keyframes temp-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
