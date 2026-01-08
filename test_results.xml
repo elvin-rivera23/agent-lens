@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="0.817" timestamp="2026-01-07T23:49:05.527103" hostname="Kuyas-Trading-PC"><testcase classname="tests.test_orchestrator.TestCoderAgent" name="test_extract_python_code_block" time="0.244"><failure message="AttributeError: 'CoderAgent' object has no attribute '_extract_code'">self = &lt;tests.test_orchestrator.TestCoderAgent object at 0x00000266180B1350&gt;
+
+        def test_extract_python_code_block(self):
+            """Test extraction of Python code from markdown."""
+            from agents.coder import CoderAgent
+    
+            agent = CoderAgent()
+    
+            response = '''Here is the code:
+    ```python
+    def hello():
+        return "world"
+    ```
+    That should work!'''
+    
+&gt;           code = agent._extract_code(response)
+E           AttributeError: 'CoderAgent' object has no attribute '_extract_code'
+
+tests\test_orchestrator.py:91: AttributeError</failure></testcase><testcase classname="tests.test_orchestrator.TestCoderAgent" name="test_extract_generic_code_block" time="0.160"><failure message="AttributeError: 'CoderAgent' object has no attribute '_extract_code'">self = &lt;tests.test_orchestrator.TestCoderAgent object at 0x000002661800E410&gt;
+
+        def test_extract_generic_code_block(self):
+            """Test extraction of generic code block."""
+            from agents.coder import CoderAgent
+    
+            agent = CoderAgent()
+    
+            response = '''```
+    def test():
+        pass
+    ```'''
+    
+&gt;           code = agent._extract_code(response)
+E           AttributeError: 'CoderAgent' object has no attribute '_extract_code'
+
+tests\test_orchestrator.py:107: AttributeError</failure></testcase><testcase classname="tests.test_orchestrator.TestCoderAgent" name="test_extract_no_code_block" time="0.170"><failure message="AttributeError: 'CoderAgent' object has no attribute '_extract_code'">self = &lt;tests.test_orchestrator.TestCoderAgent object at 0x00000266180B1F50&gt;
+
+    def test_extract_no_code_block(self):
+        """Test fallback when no code block present."""
+        from agents.coder import CoderAgent
+    
+        agent = CoderAgent()
+    
+        # Response with code-like content but no markdown
+        response = "def fibonacci(n):\n    return n"
+&gt;       code = agent._extract_code(response)
+E       AttributeError: 'CoderAgent' object has no attribute '_extract_code'
+
+tests\test_orchestrator.py:119: AttributeError</failure></testcase><testcase classname="tests.test_orchestrator.TestCoderAgent" name="test_generate_filename" time="0.157" /></testsuite></testsuites>

@@ -287,15 +287,15 @@ class TestArchitectAgent:
 
         response = '''{
             "summary": "Create a hello world app",
-            "subtasks": [
-                {"id": 1, "title": "Main function", "description": "Create main", "dependencies": []}
+            "files": [
+                {"path": "main.py", "description": "Main entry point"}
             ]
         }'''
 
         plan = agent._parse_plan(response)
         assert plan is not None
         assert plan["summary"] == "Create a hello world app"
-        assert len(plan["subtasks"]) == 1
+        assert len(plan["files"]) == 1
 
     def test_parse_plan_in_code_block(self):
         """Test parsing JSON wrapped in code block."""
@@ -307,7 +307,7 @@ class TestArchitectAgent:
 ```json
 {
     "summary": "Test plan",
-    "subtasks": [{"id": 1, "title": "Task 1", "description": "Do thing", "dependencies": []}]
+    "files": [{"path": "main.py", "description": "Main file"}]
 }
 ```'''
 

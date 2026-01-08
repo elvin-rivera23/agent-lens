@@ -57,12 +57,11 @@ class BaseAgent(ABC):
     def _get_mock_response(self, messages: list[dict]) -> str:
         """Return mock LLM response for demo mode."""
         import random
-        import asyncio
-        
+
         # Simulate delay for realism
         time.sleep(random.uniform(0.5, 1.5))
         self._tokens_used = random.randint(150, 400)
-        
+
         # Agent-specific mock responses
         if self.name == "architect":
             return """I'll break this task into steps:
@@ -70,7 +69,7 @@ class BaseAgent(ABC):
 ## Implementation Plan
 
 1. **Core functionality** - Implement the main logic
-2. **User interface** - Create command-line interface  
+2. **User interface** - Create command-line interface
 3. **Data persistence** - Add JSON file storage
 4. **Error handling** - Handle edge cases
 
@@ -89,23 +88,23 @@ from typing import Optional
 
 class TodoManager:
     """Manages todo items with persistence."""
-    
+
     def __init__(self, filepath: str = "todos.json"):
         self.filepath = filepath
         self.todos: list[dict] = []
         self.load()
-    
+
     def load(self) -> None:
         """Load todos from JSON file."""
         if os.path.exists(self.filepath):
             with open(self.filepath, "r") as f:
                 self.todos = json.load(f)
-    
+
     def save(self) -> None:
         """Save todos to JSON file."""
         with open(self.filepath, "w") as f:
             json.dump(self.todos, f, indent=2)
-    
+
     def add(self, task: str) -> int:
         """Add a new todo item."""
         todo_id = len(self.todos) + 1
@@ -116,7 +115,7 @@ class TodoManager:
         })
         self.save()
         return todo_id
-    
+
     def remove(self, todo_id: int) -> bool:
         """Remove a todo by ID."""
         for i, todo in enumerate(self.todos):
@@ -125,7 +124,7 @@ class TodoManager:
                 self.save()
                 return True
         return False
-    
+
     def complete(self, todo_id: int) -> bool:
         """Mark a todo as complete."""
         for todo in self.todos:
@@ -134,7 +133,7 @@ class TodoManager:
                 self.save()
                 return True
         return False
-    
+
     def list_all(self) -> list[dict]:
         """Return all todos."""
         return self.todos
@@ -142,19 +141,19 @@ class TodoManager:
 def main():
     """Demo the TodoManager."""
     manager = TodoManager()
-    
+
     # Add some todos
     print("Adding todos...")
     manager.add("Learn Python")
     manager.add("Build an app")
     manager.add("Deploy to production")
-    
+
     # List todos
     print("\\nCurrent todos:")
     for todo in manager.list_all():
         status = "✓" if todo["completed"] else "○"
         print(f"  {status} [{todo['id']}] {todo['task']}")
-    
+
     # Complete one
     manager.complete(1)
     print("\\nAfter completing first task:")
@@ -185,7 +184,7 @@ Code is ready for execution."""
 
         elif self.name == "executor":
             return "Execution completed successfully."
-        
+
         else:
             return f"Mock response from {self.name} agent."
 
@@ -298,7 +297,7 @@ Code is ready for execution."""
         # Mock mode for demos without inference service
         if os.getenv("MOCK_LLM", "").lower() == "true":
             return self._get_mock_response(messages)
-        
+
         # Prepend system prompt
         full_messages = [{"role": "system", "content": self.system_prompt}, *messages]
 
@@ -372,8 +371,8 @@ Code is ready for execution."""
         raise RuntimeError("LLM call failed with no error captured")
 
     async def call_llm_streaming(
-        self, 
-        messages: list[dict], 
+        self,
+        messages: list[dict],
         max_tokens: int = 1024,
         file_path: str = "/output.py"
     ) -> str:
@@ -391,7 +390,7 @@ Code is ready for execution."""
             The complete generated text response
         """
         from events import EventType
-        
+
         # Prepend system prompt
         full_messages = [{"role": "system", "content": self.system_prompt}, *messages]
 
@@ -416,7 +415,7 @@ Code is ready for execution."""
                 json=payload,
             ) as response:
                 response.raise_for_status()
-                
+
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
                         data_str = line[6:]
@@ -428,7 +427,7 @@ Code is ready for execution."""
                             if "content" in delta:
                                 token = delta["content"]
                                 full_response += token
-                                
+
                                 # Emit TOKEN event for live dashboard display
                                 await broadcaster.emit(
                                     EventType.TOKEN,

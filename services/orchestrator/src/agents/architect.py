@@ -11,7 +11,7 @@ import re
 
 from agents.base import BaseAgent
 from events import broadcaster
-from state import OrchestratorState, FileSpec, ExecutionStep, ExecutionPlan
+from state import ExecutionPlan, ExecutionStep, FileSpec, OrchestratorState
 from tools import create_default_registry
 
 logger = logging.getLogger(__name__)
@@ -128,7 +128,7 @@ Given a task, output a JSON plan with:
         if len(planned_files) > 3:
             file_desc += f" + {len(planned_files) - 3} more"
         summary = plan_data.get("summary", f"Creating: {file_desc}")
-        
+
         # Emit event for dashboard
         await broadcaster.emit(
             "plan_created",

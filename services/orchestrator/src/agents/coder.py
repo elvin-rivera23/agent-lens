@@ -196,14 +196,23 @@ Generate ONLY the content for {file_spec.path}. Output the complete file content
         if matches:
             return matches[0].strip()
 
-        # Last resort: if no code blocks, return cleaned response
+        # Last resort: if no code blocks, check if response looks like code
         lines = response.strip().split("\n")
         # Remove lines that look like LLM commentary
         code_lines = [line for line in lines if not line.startswith("Here") and not line.startswith("This")]
-        if code_lines:
-            return "\n".join(code_lines)
+        
+        # Only return as code if it looks like actual code (has function def, class, or assignments)
+        joined = "\n".join(code_lines)
+        if code_lines and any(
+            indicator in joined for indicator in ["def ", "class ", "import ", "from ", "=", "print(", "return "]
+        ):
+            return joined
 
         return None
+
+    def _extract_code(self, response: str) -> str | None:
+        """Extract code from LLM response (wrapper for tests, defaults to Python)."""
+        return self._extract_content(response, "generated.py")
 
     async def _generate_single_file(self, state: OrchestratorState) -> OrchestratorState:
         """Fallback: generate single file (old behavior)."""

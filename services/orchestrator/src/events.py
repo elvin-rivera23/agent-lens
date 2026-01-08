@@ -151,8 +151,8 @@ class EventBroadcaster:
     async def emit_file_created(self, agent: str, file_path: str, content: str) -> None:
         """Convenience method for file creation events."""
         await self.emit(
-            EventType.FILE_CREATED, 
-            agent, 
+            EventType.FILE_CREATED,
+            agent,
             {"file_path": file_path, "content": content, "size": len(content)}
         )
 

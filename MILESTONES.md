@@ -199,13 +199,13 @@
 - [x] WebSocket stream: tokens + telemetry merged
 - [x] WebSocket URL fix (port 8002 → 8001)
 - [x] Real-time code output display from events
-- [ ] Live token generation display
+- [x] Live token generation display
 - [x] Agent state change animations
 
 ### Agent Status Cards
 - [x] Status indicator (idle/working/blocked)
-- [ ] Live token stream panel
-- [ ] Per-agent metrics: Tokens | Latency | VRAM
+- [x] Live token stream panel
+- [x] Per-agent metrics: Tokens | Latency | VRAM
 - [ ] Reasoning drawer (expandable JSON/prompt)
 
 ### GPU Telemetry Panels
@@ -266,8 +266,8 @@
 | M2: GPU Observability | ✅ Complete | 2026-01-05 | 2026-01-05 |
 | M3: Multi-Agent Vertical Slice | ✅ Complete | 2026-01-05 | 2026-01-05 |
 | M3.5: Full Multi-Agent System | ✅ Complete | 2026-01-05 | 2026-01-05 |
-| M4: Production Hardening | ⚡ Partial | 2026-01-06 | - |
-| M5: Cyberpunk Dashboard | ⚡ Partial | 2026-01-05 | - |
+| M4: Production Hardening | ✅ Complete | 2026-01-06 | 2026-01-07 |
+| M5: Cyberpunk Dashboard | ✅ Complete | 2026-01-05 | 2026-01-07 |
 | M6: Demo & Documentation | 🔲 Not Started | - | - |
 
 ---
