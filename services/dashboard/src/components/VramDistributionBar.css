@@ -1,0 +1,100 @@
+/* =============================================================================
+   VRAM Distribution Bar - Stacked horizontal bar
+   ============================================================================= */
+
+.vram-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.vram-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vram-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.vram-total {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+/* =============================================================================
+   Bar Container
+   ============================================================================= */
+
+.vram-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-bg-tertiary);
+}
+
+.vram-segment {
+    height: 100%;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vram-model {
+    background: linear-gradient(90deg, var(--color-magenta), #ff4da6);
+    box-shadow: 0 0 8px rgba(255, 0, 170, 0.4);
+}
+
+.vram-cache {
+    background: linear-gradient(90deg, var(--color-cyan), #4de1ff);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+.vram-free {
+    background: transparent;
+}
+
+/* =============================================================================
+   Legend
+   ============================================================================= */
+
+.vram-legend {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: 2px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.legend-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.legend-dot.model {
+    background: var(--color-magenta);
+    box-shadow: 0 0 4px rgba(255, 0, 170, 0.6);
+}
+
+.legend-dot.cache {
+    background: var(--color-cyan);
+    box-shadow: 0 0 4px rgba(0, 240, 255, 0.6);
+}

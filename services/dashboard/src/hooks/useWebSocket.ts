@@ -15,6 +15,7 @@ export function useWebSocket() {
 
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
+    const connectRef = useRef<() => void>(() => { });
 
     const connect = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -64,9 +65,9 @@ export function useWebSocket() {
                 console.log('[WS] Disconnected, reconnecting...');
                 setStatus(prev => ({ ...prev, connected: false }));
 
-                // Schedule reconnect
+                // Schedule reconnect using ref to avoid circular dependency
                 reconnectTimeoutRef.current = window.setTimeout(() => {
-                    connect();
+                    connectRef.current();
                 }, RECONNECT_DELAY);
             };
 
@@ -80,6 +81,10 @@ export function useWebSocket() {
         }
     }, []);
 
+    // Keep connectRef in sync with connect
+    connectRef.current = connect;
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: refs are stable
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);

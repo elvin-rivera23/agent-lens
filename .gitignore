@@ -58,6 +58,10 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+pytest_output.txt
+test_output.txt
+test_results.xml
+executor_test.txt
 
 # Build
 *.egg

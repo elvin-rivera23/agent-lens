@@ -236,3 +236,41 @@
         border-color: rgba(255, 51, 102, 0.5);
     }
 }
+
+/* =============================================================================
+   Task Progress Bar
+   ============================================================================= */
+
+.task-progress-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+    max-width: 400px;
+    margin: 0 var(--space-xl);
+}
+
+.task-progress-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--color-cyan);
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
+
+.task-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--color-bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.task-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-cyan), var(--color-magenta));
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 10px var(--color-cyan-glow);
+}

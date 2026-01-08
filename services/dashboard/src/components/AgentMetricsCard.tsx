@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Brain, Code, Search, Play } from 'lucide-react';
 
 interface AgentMetrics {

@@ -6,12 +6,18 @@ import { TaskInput } from './components/TaskInput';
 import { CodeTabs } from './components/CodeTabs';
 import { AgentMetricsCard, defaultAgents } from './components/AgentMetricsCard';
 import { PreviewPanel } from './components/PreviewPanel';
+import { GpuGauge } from './components/GpuGauge';
+import { VramDistributionBar } from './components/VramDistributionBar';
+import { TokenSparkline } from './components/TokenSparkline';
+import { TemperatureIndicator } from './components/TemperatureIndicator';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useGpuMetrics } from './hooks/useGpuMetrics';
 
 const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || 'http://localhost:8001';
 
 function App() {
   const { events, status, clearEvents } = useWebSocket();
+  const { metrics: gpuMetrics, tpsHistory } = useGpuMetrics();
   const [isLoading, setIsLoading] = useState(false);
   const [lastTask, setLastTask] = useState<string | null>(null);
   const [agentMetrics, setAgentMetrics] = useState(defaultAgents);
@@ -217,9 +223,12 @@ function App() {
     return null;
   };
 
+  // Calculate agent progress (completed stages out of 4)
+  const agentProgress = agentMetrics.filter(a => a.status === 'complete').length;
+
   return (
     <div className="app">
-      <Header status={status} />
+      <Header status={status} agentProgress={agentProgress} />
 
       <main className="dashboard">
         {/* Left: Task Input + Architect Plan */}
@@ -329,23 +338,35 @@ function App() {
           <div className="gpu-panel">
             <div className="panel-header">
               <span className="panel-icon">◈</span>
-              SYSTEM
+              GPU TELEMETRY
+              {gpuMetrics.available && <span className="gpu-status-badge">LIVE</span>}
             </div>
-            <div className="gpu-grid">
-              <div className="gpu-metric">
-                <div className="metric-bar" style={{ '--fill': '42%' } as React.CSSProperties} />
-                <span className="metric-label">GPU</span>
-                <span className="metric-val cyan">42%</span>
+            <div className="gpu-telemetry-grid">
+              {/* GPU Load Gauge */}
+              <GpuGauge
+                label="GPU Load"
+                value={gpuMetrics.gpuLoad}
+                color="cyan"
+              />
+
+              {/* Temperature Indicator */}
+              <TemperatureIndicator temperature={gpuMetrics.temperature} />
+
+              {/* VRAM Distribution Bar */}
+              <div className="gpu-telemetry-wide">
+                <VramDistributionBar
+                  modelBytes={gpuMetrics.vramModelBytes}
+                  cacheBytes={gpuMetrics.vramCacheBytes}
+                  totalBytes={gpuMetrics.vramTotalBytes}
+                />
               </div>
-              <div className="gpu-metric">
-                <div className="metric-bar" style={{ '--fill': '68%' } as React.CSSProperties} />
-                <span className="metric-label">VRAM</span>
-                <span className="metric-val magenta">68%</span>
-              </div>
-              <div className="gpu-metric">
-                <div className="metric-bar" style={{ '--fill': '24%' } as React.CSSProperties} />
-                <span className="metric-label">TPS</span>
-                <span className="metric-val green">24.5</span>
+
+              {/* Token Throughput Sparkline */}
+              <div className="gpu-telemetry-wide">
+                <TokenSparkline
+                  data={tpsHistory}
+                  currentTps={gpuMetrics.tokensPerSecond}
+                />
               </div>
             </div>
           </div>
