@@ -156,8 +156,8 @@ class TestExecutorAgent:
     @pytest.mark.asyncio
     async def test_run_command_echo(self, tmp_path):
         """Test running a simple command."""
-        from unittest.mock import patch
         from pathlib import Path
+        from unittest.mock import patch
 
         from agents.executor import ExecutorAgent
 
@@ -172,8 +172,8 @@ class TestExecutorAgent:
     @pytest.mark.asyncio
     async def test_run_command_invalid(self, tmp_path):
         """Test running an invalid command."""
-        from unittest.mock import patch
         from pathlib import Path
+        from unittest.mock import patch
 
         from agents.executor import ExecutorAgent
 
