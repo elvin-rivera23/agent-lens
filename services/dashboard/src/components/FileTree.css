@@ -1,0 +1,148 @@
+/* =============================================================================
+   File Tree Component
+   ============================================================================= */
+
+.file-tree {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-tree.empty {
+    min-height: 80px;
+}
+
+/* Header */
+.file-tree-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--color-cyan);
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.header-icon {
+    font-size: 10px;
+}
+
+.file-count {
+    margin-left: auto;
+    font-size: 9px;
+    color: var(--color-text-muted);
+    background: var(--color-bg-secondary);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+}
+
+/* Content */
+.file-tree-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xs) 0;
+}
+
+/* Tree Item Base */
+.tree-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+}
+
+.tree-item:hover {
+    background: rgba(0, 240, 255, 0.05);
+}
+
+/* Folder */
+.tree-item.folder {
+    color: var(--color-text-secondary);
+}
+
+.tree-item.folder:hover {
+    color: var(--color-text-primary);
+}
+
+/* File */
+.tree-item.file {
+    color: var(--color-text-muted);
+}
+
+.tree-item.file:hover {
+    color: var(--color-text-secondary);
+}
+
+.tree-item.file.selected {
+    background: rgba(0, 240, 255, 0.1);
+    color: var(--color-cyan);
+    border-right: 2px solid var(--color-cyan);
+}
+
+/* Icons */
+.tree-chevron {
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-dim);
+}
+
+.tree-icon {
+    color: var(--color-orange);
+    display: flex;
+    align-items: center;
+}
+
+.file-icon {
+    color: var(--color-cyan);
+}
+
+.tree-item.file.selected .file-icon {
+    filter: drop-shadow(0 0 4px var(--color-cyan));
+}
+
+/* Name */
+.tree-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Children container */
+.tree-children {
+    /* No extra styling needed, just contains child nodes */
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    gap: var(--space-sm);
+}
+
+.empty-icon {
+    font-size: 20px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 11px;
+    color: var(--color-text-dim);
+    font-family: var(--font-mono);
+}

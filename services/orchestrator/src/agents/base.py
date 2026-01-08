@@ -48,10 +48,146 @@ class BaseAgent(ABC):
         self.timeout = float(os.getenv("AGENT_TIMEOUT", "60"))
         self._client = httpx.AsyncClient(timeout=self.timeout)
         self._tools = tools
+        self._tokens_used = 0  # Track tokens per invocation for telemetry
 
     async def close(self) -> None:
         """Close the HTTP client."""
         await self._client.aclose()
+
+    def _get_mock_response(self, messages: list[dict]) -> str:
+        """Return mock LLM response for demo mode."""
+        import random
+
+        # Simulate delay for realism
+        time.sleep(random.uniform(0.5, 1.5))
+        self._tokens_used = random.randint(150, 400)
+
+        # Agent-specific mock responses
+        if self.name == "architect":
+            return """I'll break this task into steps:
+
+## Implementation Plan
+
+1. **Core functionality** - Implement the main logic
+2. **User interface** - Create command-line interface
+3. **Data persistence** - Add JSON file storage
+4. **Error handling** - Handle edge cases
+
+The coder agent should create a single Python file with all functionality."""
+
+        elif self.name == "coder":
+            return '''```python
+"""
+Todo List Manager - Demo Generated Code
+A command-line todo application with JSON persistence.
+"""
+
+import json
+import os
+from typing import Optional
+
+class TodoManager:
+    """Manages todo items with persistence."""
+
+    def __init__(self, filepath: str = "todos.json"):
+        self.filepath = filepath
+        self.todos: list[dict] = []
+        self.load()
+
+    def load(self) -> None:
+        """Load todos from JSON file."""
+        if os.path.exists(self.filepath):
+            with open(self.filepath, "r") as f:
+                self.todos = json.load(f)
+
+    def save(self) -> None:
+        """Save todos to JSON file."""
+        with open(self.filepath, "w") as f:
+            json.dump(self.todos, f, indent=2)
+
+    def add(self, task: str) -> int:
+        """Add a new todo item."""
+        todo_id = len(self.todos) + 1
+        self.todos.append({
+            "id": todo_id,
+            "task": task,
+            "completed": False
+        })
+        self.save()
+        return todo_id
+
+    def remove(self, todo_id: int) -> bool:
+        """Remove a todo by ID."""
+        for i, todo in enumerate(self.todos):
+            if todo["id"] == todo_id:
+                self.todos.pop(i)
+                self.save()
+                return True
+        return False
+
+    def complete(self, todo_id: int) -> bool:
+        """Mark a todo as complete."""
+        for todo in self.todos:
+            if todo["id"] == todo_id:
+                todo["completed"] = True
+                self.save()
+                return True
+        return False
+
+    def list_all(self) -> list[dict]:
+        """Return all todos."""
+        return self.todos
+
+def main():
+    """Demo the TodoManager."""
+    manager = TodoManager()
+
+    # Add some todos
+    print("Adding todos...")
+    manager.add("Learn Python")
+    manager.add("Build an app")
+    manager.add("Deploy to production")
+
+    # List todos
+    print("\\nCurrent todos:")
+    for todo in manager.list_all():
+        status = "✓" if todo["completed"] else "○"
+        print(f"  {status} [{todo['id']}] {todo['task']}")
+
+    # Complete one
+    manager.complete(1)
+    print("\\nAfter completing first task:")
+    for todo in manager.list_all():
+        status = "✓" if todo["completed"] else "○"
+        print(f"  {status} [{todo['id']}] {todo['task']}")
+
+if __name__ == "__main__":
+    main()
+```'''
+
+        elif self.name == "reviewer":
+            return """## Code Review
+
+**APPROVED** ✓
+
+The code meets quality standards:
+- Clean class-based structure
+- Proper JSON persistence
+- Good error handling
+- Clear documentation
+
+Minor suggestions for future:
+- Add input validation
+- Consider async file operations for larger datasets
+
+Code is ready for execution."""
+
+        elif self.name == "executor":
+            return "Execution completed successfully."
+
+        else:
+            return f"Mock response from {self.name} agent."
+
 
     @abstractmethod
     async def invoke(self, state: OrchestratorState) -> OrchestratorState:
@@ -146,6 +282,7 @@ class BaseAgent(ABC):
         Call the inference service with OpenAI-compatible API.
 
         Includes automatic retry with exponential backoff for connection errors.
+        Supports MOCK_LLM=true for demo without inference service.
 
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -157,6 +294,10 @@ class BaseAgent(ABC):
         Raises:
             Exception: If all retries are exhausted
         """
+        # Mock mode for demos without inference service
+        if os.getenv("MOCK_LLM", "").lower() == "true":
+            return self._get_mock_response(messages)
+
         # Prepend system prompt
         full_messages = [{"role": "system", "content": self.system_prompt}, *messages]
 
@@ -192,6 +333,7 @@ class BaseAgent(ABC):
                 if "usage" in data:
                     tokens = data["usage"].get("completion_tokens", 0)
                     record_tokens(self.name, tokens)
+                    self._tokens_used += tokens  # Track for later emission
 
                 duration = time.perf_counter() - start_time
                 logger.info(f"[{self.name}] LLM call completed in {duration:.2f}s")
@@ -227,6 +369,84 @@ class BaseAgent(ABC):
         if last_error:
             raise last_error
         raise RuntimeError("LLM call failed with no error captured")
+
+    async def call_llm_streaming(
+        self,
+        messages: list[dict],
+        max_tokens: int = 1024,
+        file_path: str = "/output.py"
+    ) -> str:
+        """
+        Call the inference service with streaming, emitting TOKEN events.
+
+        Streams tokens to the dashboard via WebSocket for live display.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            max_tokens: Maximum tokens to generate
+            file_path: File path to associate with tokens (for dashboard display)
+
+        Returns:
+            The complete generated text response
+        """
+        from events import EventType
+
+        # Prepend system prompt
+        full_messages = [{"role": "system", "content": self.system_prompt}, *messages]
+
+        # Model name - default to tinyllama for Ollama
+        model_name = os.getenv("INFERENCE_MODEL", "tinyllama")
+
+        payload = {
+            "model": model_name,
+            "messages": full_messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.7,
+            "stream": True,
+        }
+
+        start_time = time.perf_counter()
+        full_response = ""
+
+        try:
+            async with self._client.stream(
+                "POST",
+                f"{self.inference_url}/v1/chat/completions",
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str.strip() == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            delta = data.get("choices", [{}])[0].get("delta", {})
+                            if "content" in delta:
+                                token = delta["content"]
+                                full_response += token
+
+                                # Emit TOKEN event for live dashboard display
+                                await broadcaster.emit(
+                                    EventType.TOKEN,
+                                    self.name,
+                                    {"token": token, "file_path": file_path}
+                                )
+                        except json.JSONDecodeError:
+                            continue
+
+            duration = time.perf_counter() - start_time
+            logger.info(f"[{self.name}] Streaming LLM call completed in {duration:.2f}s")
+
+            return full_response
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Streaming LLM call failed: {e}")
+            # Fallback to non-streaming
+            logger.info(f"[{self.name}] Falling back to non-streaming call")
+            return await self.call_llm(messages, max_tokens)
 
     async def call_llm_with_json_retry(
         self,
@@ -308,11 +528,14 @@ class BaseAgent(ABC):
                 result = await self.invoke(state)
 
             duration = time.perf_counter() - start_time
-            await broadcaster.emit_agent_end(self.name, True, duration)
+            await broadcaster.emit_agent_end(self.name, True, duration, self._tokens_used)
+            # Reset for next invocation
+            self._tokens_used = 0
             return result
 
         except Exception as e:
             duration = time.perf_counter() - start_time
-            await broadcaster.emit_agent_end(self.name, False, duration)
+            await broadcaster.emit_agent_end(self.name, False, duration, self._tokens_used)
+            self._tokens_used = 0  # Reset for next invocation
             await broadcaster.emit_error(self.name, str(e))
             raise

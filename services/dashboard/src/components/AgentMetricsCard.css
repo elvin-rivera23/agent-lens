@@ -1,0 +1,204 @@
+/* =============================================================================
+   Agent Metrics Card - Compact Telemetry Display
+   ============================================================================= */
+
+.agent-metrics-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    min-width: 120px;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top accent line */
+.agent-metrics-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--agent-color);
+    opacity: 0.5;
+    transition: opacity var(--transition-normal);
+}
+
+/* Glow overlay */
+.agent-metrics-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top, color-mix(in srgb, var(--agent-color) 8%, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    pointer-events: none;
+}
+
+.agent-metrics-card:hover {
+    border-color: var(--glass-border-hover);
+    transform: translateY(-2px);
+}
+
+.agent-metrics-card:hover::before {
+    opacity: 1;
+}
+
+.agent-metrics-card:hover::after {
+    opacity: 1;
+}
+
+/* Active state */
+.agent-metrics-card.active {
+    border-color: var(--agent-color);
+    box-shadow:
+        0 0 25px color-mix(in srgb, var(--agent-color) 30%, transparent),
+        inset 0 0 30px color-mix(in srgb, var(--agent-color) 5%, transparent);
+}
+
+.agent-metrics-card.active::before {
+    opacity: 1;
+    height: 3px;
+    box-shadow: 0 0 10px var(--agent-color);
+}
+
+.agent-metrics-card.active::after {
+    opacity: 1;
+}
+
+/* =============================================================================
+   Icon
+   ============================================================================= */
+
+.agent-metrics-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--agent-color) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
+    border-radius: var(--radius-md);
+    color: var(--agent-color);
+    transition: all var(--transition-normal);
+}
+
+.agent-metrics-card.active .agent-metrics-icon {
+    box-shadow: 0 0 15px color-mix(in srgb, var(--agent-color) 50%, transparent);
+}
+
+.agent-metrics-card.active .agent-metrics-icon svg {
+    filter: drop-shadow(0 0 4px var(--agent-color));
+}
+
+/* =============================================================================
+   Name
+   ============================================================================= */
+
+.agent-metrics-name {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+.agent-metrics-card.active .agent-metrics-name {
+    color: var(--agent-color);
+}
+
+/* =============================================================================
+   Stats
+   ============================================================================= */
+
+.agent-metrics-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.metric-label {
+    font-size: 8px;
+    color: var(--color-text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.metric-value {
+    font-size: 11px;
+    font-family: var(--font-display);
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.agent-metrics-card.active .metric-value {
+    color: var(--agent-color);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--agent-color) 50%, transparent);
+}
+
+/* =============================================================================
+   Status Badge
+   ============================================================================= */
+
+.agent-metrics-status {
+    font-size: 8px;
+    font-family: var(--font-display);
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+}
+
+.agent-metrics-status.idle {
+    color: var(--color-text-muted);
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.agent-metrics-status.working {
+    color: var(--color-cyan);
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid var(--color-cyan-dim);
+    animation: status-pulse 1.5s ease-in-out infinite;
+}
+
+.agent-metrics-status.complete {
+    color: var(--color-green);
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid var(--color-green-dim);
+}
+
+.agent-metrics-status.error {
+    color: var(--color-red);
+    background: rgba(255, 51, 102, 0.1);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+@keyframes status-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}

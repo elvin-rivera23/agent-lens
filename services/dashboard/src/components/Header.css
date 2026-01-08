@@ -1,13 +1,38 @@
+/* =============================================================================
+   Header - Cyberpunk HUD
+   ============================================================================= */
+
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md) var(--space-lg);
-    background: linear-gradient(180deg, var(--color-bg-secondary), transparent);
-    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    padding: var(--space-md) var(--space-xl);
+    background: linear-gradient(180deg, rgba(12, 14, 22, 0.95), rgba(12, 14, 22, 0.8));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
     position: relative;
+    z-index: 100;
 }
 
+/* Top edge glow */
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            var(--color-cyan) 20%,
+            var(--color-magenta) 50%,
+            var(--color-cyan) 80%,
+            transparent 100%);
+    opacity: 0.6;
+}
+
+/* Bottom edge glow */
 .header::after {
     content: '';
     position: absolute;
@@ -15,25 +40,67 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+    background: linear-gradient(90deg, transparent, var(--color-cyan-dim), transparent);
+}
+
+/* =============================================================================
+   Brand / Logo
+   ============================================================================= */
+
+.header-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .header-brand h1 {
-    font-size: 28px;
+    font-size: 32px;
     margin: 0;
-    letter-spacing: 4px;
+    letter-spacing: 6px;
+    font-weight: 700;
+    background: linear-gradient(135deg,
+            var(--color-cyan) 0%,
+            var(--color-cyan-bright) 25%,
+            var(--color-magenta) 50%,
+            var(--color-magenta-bright) 75%,
+            var(--color-cyan) 100%);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: holographic 8s ease infinite;
+    text-shadow: none;
+    filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.3));
+}
+
+@keyframes holographic {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 .header-brand .accent {
-    color: var(--color-magenta);
+    -webkit-text-fill-color: transparent;
 }
 
 .header-subtitle {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--color-text-muted);
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     text-transform: uppercase;
+    font-family: var(--font-display);
+    opacity: 0.7;
 }
+
+/* =============================================================================
+   Status Indicators
+   ============================================================================= */
 
 .header-status {
     display: flex;
@@ -41,30 +108,57 @@
     gap: var(--space-md);
 }
 
+/* Active Agent Pill */
 .active-agent {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-sm);
-    background: rgba(255, 0, 170, 0.2);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 0, 170, 0.1);
     border: 1px solid var(--color-magenta);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--color-magenta);
     font-size: 11px;
-    letter-spacing: 1px;
+    font-family: var(--font-display);
+    letter-spacing: 2px;
+    box-shadow:
+        0 0 15px rgba(255, 0, 170, 0.2),
+        inset 0 0 20px rgba(255, 0, 170, 0.05);
+    animation: agent-glow 2s ease-in-out infinite;
 }
 
+@keyframes agent-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 15px rgba(255, 0, 170, 0.2), inset 0 0 20px rgba(255, 0, 170, 0.05);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(255, 0, 170, 0.4), inset 0 0 30px rgba(255, 0, 170, 0.1);
+    }
+}
+
+.active-agent svg {
+    filter: drop-shadow(0 0 4px var(--color-magenta));
+}
+
+/* Task Indicator Pill */
 .task-indicator {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-sm);
-    background: rgba(255, 107, 0, 0.2);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 107, 0, 0.1);
     border: 1px solid var(--color-orange);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--color-orange);
     font-size: 11px;
-    letter-spacing: 1px;
+    font-family: var(--font-display);
+    letter-spacing: 2px;
+    box-shadow:
+        0 0 15px rgba(255, 107, 0, 0.2),
+        inset 0 0 20px rgba(255, 107, 0, 0.05);
 }
 
 .task-indicator .spin {
@@ -81,24 +175,64 @@
     }
 }
 
+/* Connection Status Pill */
 .connection-status {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-sm);
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
     font-size: 10px;
-    letter-spacing: 1px;
+    font-family: var(--font-display);
+    letter-spacing: 2px;
+    transition: all var(--transition-normal);
 }
 
 .connection-status.connected {
-    background: rgba(0, 255, 136, 0.15);
+    background: rgba(0, 255, 136, 0.1);
     border: 1px solid var(--color-green);
     color: var(--color-green);
+    box-shadow:
+        0 0 15px rgba(0, 255, 136, 0.2),
+        inset 0 0 20px rgba(0, 255, 136, 0.05);
+}
+
+.connection-status.connected svg {
+    filter: drop-shadow(0 0 4px var(--color-green));
+    animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 .connection-status.disconnected {
-    background: rgba(255, 51, 102, 0.15);
+    background: rgba(255, 51, 102, 0.1);
     border: 1px solid var(--color-red);
     color: var(--color-red);
+    box-shadow:
+        0 0 15px rgba(255, 51, 102, 0.2),
+        inset 0 0 20px rgba(255, 51, 102, 0.05);
+    animation: error-pulse 1s ease-in-out infinite;
+}
+
+@keyframes error-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+        border-color: rgba(255, 51, 102, 0.5);
+    }
 }

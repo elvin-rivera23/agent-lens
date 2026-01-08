@@ -7,14 +7,41 @@ Defines the state that flows between agents in the LangGraph.
 from pydantic import BaseModel, Field
 
 
+class FileSpec(BaseModel):
+    """Specification for a file to be generated."""
+    path: str = Field(..., description="Relative file path (e.g., 'src/main.py')")
+    description: str = Field(default="", description="What this file should contain")
+    content: str = Field(default="", description="Generated file content")
+    generated: bool = Field(default=False, description="Whether file has been generated")
+
+
+class ExecutionStep(BaseModel):
+    """A single execution step."""
+    cmd: str = Field(..., description="Command to run")
+    label: str = Field(default="", description="Human-readable label for this step")
+    background: bool = Field(default=False, description="Run in background (for servers)")
+    port: int | None = Field(default=None, description="Port exposed if background server")
+    requires_approval: bool = Field(default=False, description="Needs user approval before running")
+
+
+class ExecutionPlan(BaseModel):
+    """Plan for how to execute the generated project."""
+    steps: list[ExecutionStep] = Field(default_factory=list, description="Commands to run")
+    preview_type: str = Field(default="terminal", description="'terminal', 'iframe', or 'none'")
+    preview_url: str = Field(default="", description="URL for iframe preview if applicable")
+
+
 class OrchestratorState(BaseModel):
     """State passed between agents in the orchestration graph."""
 
     # User request
     task: str = Field(..., description="The user's original coding task")
 
-    # Architect agent outputs
+    # Architect agent outputs - Multi-file plan
     plan: dict = Field(default_factory=dict, description="Structured execution plan")
+    planned_files: list[FileSpec] = Field(default_factory=list, description="Files to generate")
+    execution_plan: ExecutionPlan | None = Field(default=None, description="How to run the project")
+    current_file_index: int = Field(default=0, description="Index of current file being generated")
     current_subtask: int = Field(default=0, description="Index of current subtask")
 
     # Coder agent outputs
@@ -30,6 +57,7 @@ class OrchestratorState(BaseModel):
     # Executor agent outputs
     execution_output: str = Field(default="", description="stdout/stderr from execution")
     execution_success: bool = Field(default=False, description="Whether execution succeeded")
+    preview_url: str = Field(default="", description="URL for live preview if web app")
 
     # Orchestration tracking
     current_agent: str = Field(default="", description="Currently active agent")
@@ -47,6 +75,16 @@ class OrchestratorState(BaseModel):
     context_tokens: int = Field(default=0, description="Estimated token count of context")
     max_context_tokens: int = Field(default=4096, description="Max context tokens before compression")
     context_compressed: bool = Field(default=False, description="Whether context was compressed")
+
+    # Multi-file workspace tracking
+    workspace_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="Map of relative file paths to content for all generated files"
+    )
+
+    def add_file(self, file_path: str, content: str) -> None:
+        """Add or update a file in the workspace tracking."""
+        self.workspace_files[file_path] = content
 
     def add_history(self, agent: str, action: str, result: str) -> None:
         """Add an entry to the action history."""

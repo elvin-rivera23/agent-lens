@@ -196,9 +196,9 @@ def build_orchestration_graph() -> StateGraph:
     return graph
 
 
-# Compile the graph with higher recursion limit
+# Compile the graph with higher recursion limit for multi-file projects
 orchestration_graph = build_orchestration_graph().compile()
-orchestration_graph.recursion_limit = 50
+orchestration_graph.recursion_limit = 100
 
 
 # =============================================================================
@@ -223,7 +223,7 @@ async def run_orchestration(task: str) -> OrchestratorState:
     try:
         result = await orchestration_graph.ainvoke(
             initial_state,
-            config={"recursion_limit": 50}
+            config={"recursion_limit": 100}
         )
 
         # LangGraph may return dict or state object depending on version

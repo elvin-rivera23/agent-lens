@@ -7,7 +7,6 @@ Unit and integration tests for the multi-agent orchestration system.
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -147,52 +146,43 @@ def test():
 class TestExecutorAgent:
     """Tests for ExecutorAgent command execution."""
 
-    def test_command_whitelist(self):
-        """Test that only whitelisted commands are allowed."""
-        from agents.executor import ALLOWED_COMMANDS
-
-        assert "python" in ALLOWED_COMMANDS
-        assert "python3" in ALLOWED_COMMANDS
-        assert "pytest" in ALLOWED_COMMANDS
-        assert "ruff" in ALLOWED_COMMANDS
-        assert "rm" not in ALLOWED_COMMANDS
-        assert "curl" not in ALLOWED_COMMANDS
-
-    @pytest.mark.asyncio
-    async def test_execute_simple_python(self, tmp_path):
-        """Test executing a simple Python file."""
+    def test_executor_agent_creation(self):
+        """Test that ExecutorAgent can be instantiated."""
         from agents.executor import ExecutorAgent
 
-        # Create a test file
-        test_file = tmp_path / "test.py"
-        test_file.write_text('print("Hello, World!")')
+        agent = ExecutorAgent()
+        assert agent.name == "executor"
+
+    @pytest.mark.asyncio
+    async def test_run_command_echo(self, tmp_path):
+        """Test running a simple command."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from agents.executor import ExecutorAgent
 
         agent = ExecutorAgent()
-
-        # Mock the workspace check
-        with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output, exit_code = await agent._execute_python(test_file)
+        # Patch WORKSPACE_DIR to use tmp_path (exists in CI)
+        with patch("agents.executor.WORKSPACE_DIR", Path(tmp_path)):
+            success, output = await agent._run_command('python -c "print(\'hello\')"')
 
         assert success is True
-        assert "Hello, World!" in output
-        assert exit_code == 0
+        assert "hello" in output
 
     @pytest.mark.asyncio
-    async def test_execute_python_error(self, tmp_path):
-        """Test executing Python code with error."""
+    async def test_run_command_invalid(self, tmp_path):
+        """Test running an invalid command."""
+        from pathlib import Path
+        from unittest.mock import patch
+
         from agents.executor import ExecutorAgent
 
-        # Create a test file with syntax error
-        test_file = tmp_path / "error.py"
-        test_file.write_text("def broken(:\n    pass")
-
         agent = ExecutorAgent()
-
-        with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output, exit_code = await agent._execute_python(test_file)
+        # Patch WORKSPACE_DIR to use tmp_path
+        with patch("agents.executor.WORKSPACE_DIR", Path(tmp_path)):
+            success, output = await agent._run_command("this_command_does_not_exist_12345")
 
         assert success is False
-        assert exit_code != 0
 
 
 class TestGraphRouting:
@@ -287,15 +277,15 @@ class TestArchitectAgent:
 
         response = '''{
             "summary": "Create a hello world app",
-            "subtasks": [
-                {"id": 1, "title": "Main function", "description": "Create main", "dependencies": []}
+            "files": [
+                {"path": "main.py", "description": "Main entry point"}
             ]
         }'''
 
         plan = agent._parse_plan(response)
         assert plan is not None
         assert plan["summary"] == "Create a hello world app"
-        assert len(plan["subtasks"]) == 1
+        assert len(plan["files"]) == 1
 
     def test_parse_plan_in_code_block(self):
         """Test parsing JSON wrapped in code block."""
@@ -307,7 +297,7 @@ class TestArchitectAgent:
 ```json
 {
     "summary": "Test plan",
-    "subtasks": [{"id": 1, "title": "Task 1", "description": "Do thing", "dependencies": []}]
+    "files": [{"path": "main.py", "description": "Main file"}]
 }
 ```'''
 

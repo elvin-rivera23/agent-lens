@@ -23,10 +23,12 @@ class EventType(str, Enum):
     AGENT_END = "agent_end"
     TOKEN = "token"
     CODE_WRITTEN = "code_written"
+    FILE_CREATED = "file_created"
     EXECUTION = "execution"
     RETRY = "retry"
     ERROR = "error"
     COMPLETE = "complete"
+    WORKSPACE_RESET = "workspace_reset"
 
 
 @dataclass
@@ -116,14 +118,20 @@ class EventBroadcaster:
         """Convenience method for agent start events."""
         await self.emit(EventType.AGENT_START, agent, {"task": task})
 
-    async def emit_agent_end(self, agent: str, success: bool, duration: float) -> None:
+    async def emit_agent_end(
+        self, agent: str, success: bool, duration: float, tokens: int = 0
+    ) -> None:
         """Convenience method for agent end events."""
-        await self.emit(EventType.AGENT_END, agent, {"success": success, "duration": duration})
+        await self.emit(
+            EventType.AGENT_END,
+            agent,
+            {"success": success, "duration": duration, "tokens": tokens, "latency": duration},
+        )
 
-    async def emit_code_written(self, agent: str, file_path: str, code_length: int) -> None:
+    async def emit_code_written(self, agent: str, file_path: str, code: str) -> None:
         """Convenience method for code written events."""
         await self.emit(
-            EventType.CODE_WRITTEN, agent, {"file_path": file_path, "code_length": code_length}
+            EventType.CODE_WRITTEN, agent, {"file_path": file_path, "code": code}
         )
 
     async def emit_execution(
@@ -139,6 +147,18 @@ class EventBroadcaster:
     async def emit_error(self, agent: str, error: str) -> None:
         """Convenience method for error events."""
         await self.emit(EventType.ERROR, agent, {"error": error})
+
+    async def emit_file_created(self, agent: str, file_path: str, content: str) -> None:
+        """Convenience method for file creation events."""
+        await self.emit(
+            EventType.FILE_CREATED,
+            agent,
+            {"file_path": file_path, "content": content, "size": len(content)}
+        )
+
+    async def emit_workspace_reset(self) -> None:
+        """Convenience method for workspace reset events."""
+        await self.emit(EventType.WORKSPACE_RESET, "orchestrator", {})
 
 
 # Global broadcaster instance
