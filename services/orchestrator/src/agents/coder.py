@@ -64,89 +64,89 @@ For non-Python files, use the appropriate fence:
 
     async def invoke(self, state: OrchestratorState) -> OrchestratorState:
         """Generate all files from the Architect's plan."""
-        
+
         # Ensure workspace exists
         WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
-        
+
         if not state.planned_files:
             # Fallback to old behavior if no planned files
             return await self._generate_single_file(state)
-        
+
         # Generate each file in the plan
         all_files_context = [f"{f.path}: {f.description}" for f in state.planned_files]
-        
+
         for i, file_spec in enumerate(state.planned_files):
             if file_spec.generated:
                 continue  # Skip already generated files
-                
+
             logger.info(f"[{self.name}] Generating file {i+1}/{len(state.planned_files)}: {file_spec.path}")
-            
+
             # Build prompt for this specific file
             messages = self._build_file_prompt(state, file_spec, all_files_context)
-            
+
             # Determine file path
             file_path = WORKSPACE_DIR / file_spec.path
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Generate with streaming
             response = await self.call_llm_streaming(
                 messages,
                 max_tokens=2048,
                 file_path=str(file_path)
             )
-            
+
             # Extract content from response
             content = self._extract_content(response, file_spec.path)
-            
+
             if not content:
                 logger.warning(f"[{self.name}] Failed to extract content for {file_spec.path}")
                 content = f"# TODO: Generate content for {file_spec.path}\n"
-            
+
             # Write file
             file_path.write_text(content, encoding="utf-8")
-            
+
             # Update file spec
             file_spec.content = content
             file_spec.generated = True
-            
+
             # Add to workspace files
             state.add_file(str(file_path), content)
-            
+
             # Emit event for dashboard
             await broadcaster.emit_file_created(self.name, file_spec.path, content)
-            
+
             logger.info(f"[{self.name}] Wrote {len(content)} chars to {file_path}")
-        
+
         # Update state with last file for compatibility
         if state.planned_files:
             last_file = state.planned_files[-1]
             state.code = last_file.content
             state.file_path = str(WORKSPACE_DIR / last_file.path)
-        
+
         state.add_history(
             self.name,
             "generate",
             f"Generated {len(state.planned_files)} files"
         )
-        
+
         return state
 
     def _build_file_prompt(
-        self, 
-        state: OrchestratorState, 
-        file_spec, 
+        self,
+        state: OrchestratorState,
+        file_spec,
         all_files: list[str]
     ) -> list[dict]:
         """Build prompt for generating a specific file."""
-        
+
         other_files = "\n".join(f"- {f}" for f in all_files if f != f"{file_spec.path}: {file_spec.description}")
-        
+
         # Include already generated file contents for imports
         existing_content = ""
         for f in state.planned_files:
             if f.generated and f.path != file_spec.path:
                 existing_content += f"\n\n### {f.path}\n```\n{f.content[:500]}...\n```"
-        
+
         prompt = f"""Generate the content for this file:
 
 **Project Task:** {state.task}
@@ -164,7 +164,7 @@ Generate ONLY the content for {file_spec.path}. Output the complete file content
 
     def _extract_content(self, response: str, file_path: str) -> str | None:
         """Extract file content from LLM response."""
-        
+
         # Determine expected language from file extension
         ext = Path(file_path).suffix.lower()
         lang_map = {
@@ -180,48 +180,48 @@ Generate ONLY the content for {file_spec.path}. Output the complete file content
             ".yml": ["yaml", "yml"],
             ".md": ["markdown", "md"],
         }
-        
+
         expected_langs = lang_map.get(ext, [""])
-        
+
         # Try to find code block with expected language
         for lang in expected_langs:
             pattern = rf"```{lang}\s*(.*?)```"
             matches = re.findall(pattern, response, re.DOTALL | re.IGNORECASE)
             if matches:
                 return matches[0].strip()
-        
+
         # Fallback: any code block
         pattern = r"```\w*\s*(.*?)```"
         matches = re.findall(pattern, response, re.DOTALL)
         if matches:
             return matches[0].strip()
-        
+
         # Last resort: if no code blocks, return cleaned response
         lines = response.strip().split("\n")
         # Remove lines that look like LLM commentary
-        code_lines = [l for l in lines if not l.startswith("Here") and not l.startswith("This")]
+        code_lines = [line for line in lines if not line.startswith("Here") and not line.startswith("This")]
         if code_lines:
             return "\n".join(code_lines)
-        
+
         return None
 
     async def _generate_single_file(self, state: OrchestratorState) -> OrchestratorState:
         """Fallback: generate single file (old behavior)."""
         messages = [{"role": "user", "content": f"Write code for: {state.task}"}]
-        
+
         filename = self._generate_filename(state.task)
         file_path = WORKSPACE_DIR / filename
-        
+
         response = await self.call_llm_streaming(messages, max_tokens=2048, file_path=str(file_path))
         code = self._extract_content(response, filename) or ""
-        
+
         file_path.write_text(code, encoding="utf-8")
         await broadcaster.emit_code_written(self.name, str(file_path), code)
-        
+
         state.code = code
         state.file_path = str(file_path)
         state.add_file(str(file_path), code)
-        
+
         return state
 
     def _generate_filename(self, task: str) -> str:
