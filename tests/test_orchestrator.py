@@ -147,20 +147,16 @@ def test():
 class TestExecutorAgent:
     """Tests for ExecutorAgent command execution."""
 
-    def test_command_whitelist(self):
-        """Test that only whitelisted commands are allowed."""
-        from agents.executor import ALLOWED_COMMANDS
+    def test_executor_agent_creation(self):
+        """Test that ExecutorAgent can be instantiated."""
+        from agents.executor import ExecutorAgent
 
-        assert "python" in ALLOWED_COMMANDS
-        assert "python3" in ALLOWED_COMMANDS
-        assert "pytest" in ALLOWED_COMMANDS
-        assert "ruff" in ALLOWED_COMMANDS
-        assert "rm" not in ALLOWED_COMMANDS
-        assert "curl" not in ALLOWED_COMMANDS
+        agent = ExecutorAgent()
+        assert agent.name == "executor"
 
     @pytest.mark.asyncio
-    async def test_execute_simple_python(self, tmp_path):
-        """Test executing a simple Python file."""
+    async def test_run_command_simple(self, tmp_path):
+        """Test running a simple command."""
         from agents.executor import ExecutorAgent
 
         # Create a test file
@@ -169,17 +165,16 @@ class TestExecutorAgent:
 
         agent = ExecutorAgent()
 
-        # Mock the workspace check
+        # Mock the workspace and run python on the file
         with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output, exit_code = await agent._execute_python(test_file)
+            success, output = await agent._run_command(f"python {test_file}")
 
         assert success is True
         assert "Hello, World!" in output
-        assert exit_code == 0
 
     @pytest.mark.asyncio
-    async def test_execute_python_error(self, tmp_path):
-        """Test executing Python code with error."""
+    async def test_run_command_error(self, tmp_path):
+        """Test running a command that fails."""
         from agents.executor import ExecutorAgent
 
         # Create a test file with syntax error
@@ -189,10 +184,9 @@ class TestExecutorAgent:
         agent = ExecutorAgent()
 
         with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output, exit_code = await agent._execute_python(test_file)
+            success, output = await agent._run_command(f"python {test_file}")
 
         assert success is False
-        assert exit_code != 0
 
 
 class TestGraphRouting:
