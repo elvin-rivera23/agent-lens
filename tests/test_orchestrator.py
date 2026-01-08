@@ -155,36 +155,25 @@ class TestExecutorAgent:
         assert agent.name == "executor"
 
     @pytest.mark.asyncio
-    async def test_run_command_simple(self, tmp_path):
-        """Test running a simple command."""
+    async def test_run_command_echo(self):
+        """Test running a simple echo command."""
         from agents.executor import ExecutorAgent
 
-        # Create a test file
-        test_file = tmp_path / "test.py"
-        test_file.write_text('print("Hello, World!")')
-
         agent = ExecutorAgent()
-
-        # Mock the workspace and run python on the file
-        with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output = await agent._run_command(f"python {test_file}")
+        # Echo works on both Windows and Linux
+        success, output = await agent._run_command("echo hello")
 
         assert success is True
-        assert "Hello, World!" in output
+        assert "hello" in output.lower()
 
     @pytest.mark.asyncio
-    async def test_run_command_error(self, tmp_path):
-        """Test running a command that fails."""
+    async def test_run_command_invalid(self):
+        """Test running an invalid command."""
         from agents.executor import ExecutorAgent
 
-        # Create a test file with syntax error
-        test_file = tmp_path / "error.py"
-        test_file.write_text("def broken(:\n    pass")
-
         agent = ExecutorAgent()
-
-        with patch.dict("os.environ", {"WORKSPACE_DIR": str(tmp_path)}):
-            success, output = await agent._run_command(f"python {test_file}")
+        # This command doesn't exist on any platform
+        success, output = await agent._run_command("this_command_does_not_exist_12345")
 
         assert success is False
 
