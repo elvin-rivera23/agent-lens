@@ -8,6 +8,8 @@ Watch AI agents collaborate on coding tasks while seeing real-time GPU inference
 ![Python](https://img.shields.io/badge/python-3.11+-green.svg)
 ![Docker](https://img.shields.io/badge/docker-required-blue.svg)
 
+![AgentLens Dashboard](docs/assets/dashboard-preview.png)
+
 ## The Problem
 
 AI agents are black boxes. When you run CrewAI, AutoGen, or LangGraph agents:
@@ -88,6 +90,22 @@ Open http://localhost:5173 and enter a coding task!
 
 - **Docker Mode**: Docker Desktop
 - **Local Mode**: Python 3.11+, Node.js 18+, Ollama
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **4-Agent Pipeline** | Architect → Coder → Reviewer → Executor with automatic retry |
+| 👁️ **Glass-Box Visibility** | See every agent's reasoning, tokens, and decisions in real-time |
+| 📊 **GPU Telemetry** | Live utilization gauges, VRAM tracking, TPS sparklines |
+| ⚡ **Streaming Output** | Watch code generate token-by-token via WebSocket |
+| 🔄 **Error Recovery** | Automatic retry with error classification and fix prompts |
+| 🎨 **Cyberpunk HUD** | Dark theme dashboard with agent timeline and reasoning drawer |
+
+## Documentation
+
+- **[API Reference](docs/API.md)** - REST endpoints and WebSocket events
+- **[Configuration](docs/CONFIGURATION.md)** - Environment variables and Docker profiles
 
 ## Project Structure
 
