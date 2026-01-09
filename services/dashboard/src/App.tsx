@@ -14,6 +14,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useGpuMetrics } from './hooks/useGpuMetrics';
 
 const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || 'http://localhost:8001';
+const REASONING_EVENT_BLACKLIST = new Set(['token', 'file_created', 'workspace_reset']);
 
 function App() {
   const { events, status, clearEvents } = useWebSocket();
@@ -225,6 +226,16 @@ function App() {
 
   // Calculate agent progress (completed stages out of 4)
   const agentProgress = agentMetrics.filter(a => a.status === 'complete').length;
+  const agentMetricsWithReasoning = agentMetrics.map(agent => {
+    const latestEvent = events.find(event =>
+      event.agent === agent.id && !REASONING_EVENT_BLACKLIST.has(event.type)
+    );
+
+    return {
+      ...agent,
+      reasoningData: latestEvent?.data ?? null,
+    };
+  });
 
   return (
     <div className="app">
@@ -323,7 +334,7 @@ function App() {
               <span className="token-counter">{totalTokens.toLocaleString()} tkn</span>
             </div>
             <div className="agents-stack">
-              {agentMetrics.map(agent => (
+              {agentMetricsWithReasoning.map(agent => (
                 <AgentMetricsCard
                   key={agent.id}
                   agent={agent}

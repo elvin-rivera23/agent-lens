@@ -124,7 +124,7 @@
     width: 100%;
 }
 
-.metric-row {
+.agent-metrics-card .metric-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -134,14 +134,14 @@
     border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.metric-label {
+.agent-metrics-card .metric-label {
     font-size: 8px;
     color: var(--color-text-muted);
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
-.metric-value {
+.agent-metrics-card .metric-value {
     font-size: 11px;
     font-family: var(--font-display);
     color: var(--color-text-primary);
@@ -189,6 +189,72 @@
     color: var(--color-red);
     background: rgba(255, 51, 102, 0.1);
     border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+/* =============================================================================
+   Reasoning Drawer
+   ============================================================================= */
+
+.drawer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.drawer-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 4px 6px;
+    background: var(--glass-bg);
+    border: 1px solid color-mix(in srgb, var(--agent-color) 25%, var(--glass-border));
+    border-radius: var(--radius-sm);
+    color: var(--agent-color);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.drawer-toggle:hover {
+    border-color: var(--agent-color);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--agent-color) 35%, transparent);
+}
+
+.drawer-toggle svg {
+    transition: transform var(--transition-fast);
+}
+
+.drawer-toggle.expanded svg {
+    transform: rotate(180deg);
+}
+
+.reasoning-drawer {
+    width: 100%;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--color-text-secondary);
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 var(--space-sm);
+    transition: max-height var(--transition-normal), padding var(--transition-fast), opacity var(--transition-fast);
+}
+
+.reasoning-drawer.expanded {
+    max-height: 150px;
+    opacity: 1;
+    overflow: auto;
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.reasoning-drawer pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 @keyframes status-pulse {
